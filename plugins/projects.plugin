@@ -1,0 +1,12 @@
+[Core]
+Name = projects
+Module = projects
+
+[Nikola]
+PluginCategory = Task
+MinVersion = 7.1.0+
+
+[Documentation]
+Author = Nick Tasios
+Version = 0.1.0
+Description = Generate projects page

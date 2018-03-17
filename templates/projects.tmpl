@@ -1,0 +1,12 @@
+## -*- coding: utf-8 -*-
+<%inherit file="base.tmpl"/>
+<%block name="content">
+    <div id="projects">
+        % for p in projects:
+        <div class="project">
+            <img src="${p.meta('image')}"/>
+            ${p.text(lang)}
+        </div>
+        % endfor
+    </div>
+</%block>
