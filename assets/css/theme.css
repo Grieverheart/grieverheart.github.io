@@ -78,6 +78,27 @@ body {
     padding: 1em 1em 1em 0em;
 }
 
+#projects {
+    display: table;
+}
+
+.project {
+    float: left;
+}
+
+.project > img {
+    padding-top: 1.5em;
+    width: 11em;
+    float: left;
+    margin-right: 2em;
+}
+
+.project > div {
+    width: calc(100% - 13em);
+    float: right;
+    padding-bottom: 2em;
+}
+
 @media (max-width: 32em) {
     #header {
         text-align: center;
@@ -100,27 +121,18 @@ body {
     #container {
         padding-top: 7em;
     }
-}
 
-#projects {
-    display: table;
-}
+    .project > img {
+        float: none;
+        display: block;
+        margin-right: auto;
+        margin-left: auto;
+    }
 
-.project {
-    float: left;
-}
-
-.project > img {
-    padding-top: 1.5em;
-    width: 11em;
-    float: left;
-    margin-right: 2em;
-}
-
-.project > div {
-    width: calc(100% - 13em);
-    float: right;
-    padding-bottom: 2em;
+    .project > div {
+        width: 100%;
+        float: none;
+    }
 }
 
 #author {
