@@ -2,10 +2,10 @@
 .. title: First Post: Introduction and Expectations
 .. slug: first_post
 .. date: 2018-02-20 15:57:41 UTC+01:00
-.. tags: 
+.. tags: introduction, blog
 .. category: 
 .. link: 
-.. description: 
+.. description: Introduction blog post for Nick Tasios
 .. pretty_url: False
 .. type: text
 -->
