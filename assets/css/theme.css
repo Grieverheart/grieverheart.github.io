@@ -99,6 +99,28 @@ body {
     padding-bottom: 2em;
 }
 
+#author {
+    padding-top: 6em;
+    text-align: center;
+}
+
+#author_name {
+    font-size: 5em;
+}
+
+#author_short {
+    font-size: 1.5em;
+}
+
+#author_media {
+    padding-top: 1em;
+}
+
+#author_media > a {
+    padding: 0 0.2em;
+    color: #FF8347;
+}
+
 @media (max-width: 32em) {
     #header {
         text-align: center;
@@ -133,28 +155,14 @@ body {
         width: 100%;
         float: none;
     }
-}
 
-#author {
-    padding-top: 6em;
-    text-align: center;
-}
+    #author {
+        padding-top: 0em;
+    }
 
-#author_name {
-    font-size: 5em;
-}
-
-#author_short {
-    font-size: 1.5em;
-}
-
-#author_media {
-    padding-top: 1em;
-}
-
-#author_media > a {
-    padding: 0 0.2em;
-    color: #FF8347;
+    #about {
+        padding-top: 0em;
+    }
 }
 
 .postpromonav .tags,
