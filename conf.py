@@ -1239,7 +1239,6 @@ USE_CDN = False
 # in the default template (base.tmpl).
 # (translatable)
 BODY_END = """
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-115952579-1"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
