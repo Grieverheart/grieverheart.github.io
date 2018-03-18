@@ -1,6 +1,7 @@
 ## -*- coding: utf-8 -*-
 <%inherit file="base.tmpl"/>
 <%block name="content">
+<article class="listpage">
     <div id="projects">
         % for p in projects:
         <div class="project">
@@ -9,4 +10,5 @@
         </div>
         % endfor
     </div>
+</article>
 </%block>
