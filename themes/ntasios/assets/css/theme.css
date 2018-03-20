@@ -1,5 +1,9 @@
 @charset "UTF-8";
 
+* {
+    box-sizing: border-box;
+}
+
 body {
 	color: #F8F8F2;
     font-family: 'Roboto', sans-serif;
@@ -9,14 +13,11 @@ body {
 }
 
 #header {
-    /*overflow: hidden;*/
-	padding: 0em;
     position: fixed;
     background-color: #272822;
-    top: 0;
-    left: 0;
-    right: 0;
+    width: 100%;
     padding: 0.5em 0.5em;
+    z-index: 1;
 }
 
 #container {
@@ -25,7 +26,11 @@ body {
 	margin: 0 auto;
 	max-width: 45em;
     padding-left: 0.5em;
-    bottom: 0;
+}
+
+#content {
+    padding-top: 1em;
+    /*padding-bottom: 1em;*/
 }
 
 #brand {
@@ -43,7 +48,6 @@ body {
     list-style-type: none;
     top: 0;
     float: right;
-    /* width: 100%; */
     margin: 0;
     padding: 0;
 }
@@ -69,13 +73,9 @@ body {
     color: #47e3ff;
 }
 
-#about {
-    padding-top: 3em;
-}
-
 #about > img {
     float: left;
-    padding: 1em 1em 1em 0em;
+    margin: 0em 1em 1em 0em;
 }
 
 #projects {
@@ -84,10 +84,10 @@ body {
 
 .project {
     float: left;
+    margin-bottom: 4em;
 }
 
 .project > img {
-    padding-top: 1.5em;
     width: 11em;
     float: left;
     margin-right: 2em;
@@ -96,29 +96,10 @@ body {
 .project > div {
     width: calc(100% - 13em);
     float: right;
-    padding-bottom: 2em;
 }
 
-#author {
-    padding-top: 6em;
-    text-align: center;
-}
-
-#author_name {
-    font-size: 5em;
-}
-
-#author_short {
-    font-size: 1.5em;
-}
-
-#author_media {
-    padding-top: 1em;
-}
-
-#author_media > a {
-    padding: 0 0.2em;
-    color: #FF8347;
+.project > div > h2{
+    margin-top: 0;
 }
 
 @media (max-width: 32em) {
@@ -126,6 +107,11 @@ body {
         text-align: center;
         padding: 0.5em 0.5em;
     }
+
+    #container {
+        padding-top: 7em;
+    }
+
     #brand {
         float: none;
     }
@@ -140,8 +126,45 @@ body {
     #menu li a {
         padding: 0.68em 0.6em;
     }
+
+    .project > img {
+        float: none;
+        display: block;
+        margin-right: auto;
+        margin-left: auto;
+    }
+
+    .project > div {
+        margin-top: 1em;
+        width: 100%;
+        float: none;
+    }
+}
+
+@media (max-width: 20em) {
+    #header {
+        text-align: center;
+        padding: 0.5em 0.5em;
+    }
+
     #container {
-        padding-top: 7em;
+        padding-top: 14em;
+    }
+
+    #brand {
+        float: none;
+    }
+    #menu ul {
+        text-align: center;
+        margin: 0 auto;
+        float: none;
+    }
+    #menu li {
+        display: block;
+        font-size: 24px;
+    }
+    #menu li a {
+        padding: 0.68em 0.6em;
     }
 
     .project > img {
@@ -152,16 +175,9 @@ body {
     }
 
     .project > div {
+        margin-top: 1em;
         width: 100%;
         float: none;
-    }
-
-    #author {
-        padding-top: 0em;
-    }
-
-    #about {
-        padding-top: 0em;
     }
 }
 

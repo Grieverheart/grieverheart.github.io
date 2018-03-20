@@ -11,7 +11,7 @@
 .. image: /files/plastic_crystal1.png
 -->
 
-<a href="https://github.com/Grieverheart/partViewer3D-GLSL" target="_blank"><h1>partviewer3D-GLSL</h1></a>
+<h1><a href="https://github.com/Grieverheart/partViewer3D-GLSL" target="_blank">partviewer3D-GLSL</a></h1>
 
 PartViewer3D is a simple 3D scene viewer written using modern OpenGL deferred shading techniques. The main usage case of PartViewer3D is for viewing hard particle configurations. As different people have different needs, the viewer can be programmed using Lua scripts through the exposed API.
 
