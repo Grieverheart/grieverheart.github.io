@@ -31,18 +31,24 @@
 
 <%def name="html_navigation_links()">
     <nav id="menu">
-    <ul>
-    <li></li>
-    %for url, text in navigation_links[lang]:
-        % if rel_link(permalink, url) == "#":
-            <li class="active"><a href="${permalink}">${text}</a></li>
-        %else:
-            <li><a href="${url}">${text}</a></li>
-        %endif
-    %endfor
-    ${template_hooks['menu']()}
-    ${template_hooks['menu_alt']()}
-    </ul>
+        <input type="checkbox"/>
+        <div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+        <li></li>
+        %for url, text in navigation_links[lang]:
+            % if rel_link(permalink, url) == "#":
+                <li class="active"><a href="${permalink}">${text}</a></li>
+            %else:
+                <li><a href="${url}">${text}</a></li>
+            %endif
+        %endfor
+        ${template_hooks['menu']()}
+        ${template_hooks['menu_alt']()}
+        </ul>
     </nav>
 </%def>
 
