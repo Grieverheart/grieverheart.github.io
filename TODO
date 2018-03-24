@@ -1,1 +1,4 @@
-* Split Css into 3 parts? index, theme, rest?
+- Split Css into 3 parts? index, theme, rest?
+* Check why checkbox blinks when pressed on Android.
+* Set checkbox position to absolute and parent to relative.
+* Make sure hamburger color behaves correctly on mobile devices.
