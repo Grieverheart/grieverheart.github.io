@@ -7,46 +7,50 @@
                         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <url>
   <loc>/</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/about/</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/categories/</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/posts/</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/posts/first_post.html</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
+ </url>
+ <url>
+  <loc>/posts/space-invaders-from-scratch-part-1.html</loc>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/SimpleEDMD.html</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/inip.html</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/ions3D.html</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/ntcd.html</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/partviewer.html</loc>
-  <lastmod>2018-03-21T16:46:00Z</lastmod>
+  <lastmod>2018-03-26T07:01:00Z</lastmod>
  </url>
 </urlset>
