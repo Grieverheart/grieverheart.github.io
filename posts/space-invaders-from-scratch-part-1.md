@@ -16,6 +16,8 @@ a few dependencies. In this post I will set up a window with an OpenGL 3.3 conte
 using GLFW and GLEW, as the only dependencies for this simple clone.
 <!-- TEASER_END -->
 
+The complete code of this post can be found [here](https://github.com/Grieverheart/space_invaders/blob/4ebf869c7bd1c7541a5db80f3f8d52fc62e1f389/main.cpp).
+
 # Space Invaders
 
 <img src="/files/space-invaders.gif"/>
@@ -146,7 +148,7 @@ while on Mac OS X, I personally prefer using [Homebrew](https://brew.sh),
 brew install glfw glew
 ```
 Unfortunately, I don't have Windows installed, but perhaps [this article](https://www.monocilindro.com/2017/02/14/how-to-install-glfw-library-on-visual-studio-c-2015/) can help you setup a GLFW project in Visual Studio.
-<img src="/files/space-invaders-window.png"/>
+<img src="/files/space-invaders-window.png" width="640px" style="display:block;"/>
 That should do it! If you successfully compiled the program, you should see a red window titled "Space Invaders", like the one above.
 
 # Conclusion
