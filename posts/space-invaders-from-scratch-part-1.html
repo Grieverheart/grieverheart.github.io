@@ -15,6 +15,7 @@
 <!--[if lt IE 9]><script src="../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
 <meta name="author" content="Nick Tasios">
 <link rel="prev" href="first_post.html" title="First Post: Introduction and Expectations" type="text/html">
+<link rel="next" href="space-invaders-from-scratch-part-2.html" title="Space Invaders from Scratch - Part 2" type="text/html">
 <meta property="og:site_name" content="NICK TASIOS">
 <meta property="og:title" content="Space Invaders from Scratch - Part 1">
 <meta property="og:url" content="/posts/space-invaders-from-scratch-part-1.html">
@@ -70,6 +71,7 @@ u">
 a few dependencies. In this post I will set up a window with an OpenGL 3.3 context
 using GLFW and GLEW, as the only dependencies for this simple clone.
 <!-- TEASER_END --></p>
+<p>The complete code of this post can be found <a href="https://github.com/Grieverheart/space_invaders/blob/4ebf869c7bd1c7541a5db80f3f8d52fc62e1f389/main.cpp">here</a>.</p>
 <h2>Space Invaders</h2>
 <p><img src="../files/space-invaders.gif"></p>
 <p>Space Invaders is an arcade game, which was first released in 1978. It is a 2D horizontal shooter where the player controls a cannon by moving it across the bottom of the screen and firing at a swarm of aliens. Points are earned for every alien it shoots down. A UFO will occasionally move across the top of the screen and award bonus points if destroyed. As more aliens are defeated, the game speeds up. The aliens also fire shots randomly as they approach the bottom of the screen, and If the shots hit the player, he loses a life. The cannon is partially protected by several bunkers that are gradually destroyed by numerous blasts from the aliens or player. Defeating all the aliens brings another wave and repairs all bunkers. The game ends if all bunkers get destroyed or the aliens reach the bottom, or if the player loses all lives.</p>
@@ -203,7 +205,7 @@ The OpenGL specification defines many functions, and your graphics driver may no
 
 
 <p>Unfortunately, I don't have Windows installed, but perhaps <a href="https://www.monocilindro.com/2017/02/14/how-to-install-glfw-library-on-visual-studio-c-2015/">this article</a> can help you setup a GLFW project in Visual Studio.
-<img src="../files/space-invaders-window.png">
+<img src="../files/space-invaders-window.png" width="640px" style="display:block;">
 That should do it! If you successfully compiled the program, you should see a red window titled "Space Invaders", like the one above.</p>
 <h2>Conclusion</h2>
 <p>As you might have realized from this post, creating a simple window with an OpenGL context in C++, is no simple task, even using a library like GLFW. Note that we are still not drawing anything. Setting up some simple drawing routines also takes quite some setting up in modern OpenGL. Fortunately, we only have to do all this once, the next game will reuse a lot of the code I'm going to present in this blog series.</p>
@@ -212,6 +214,9 @@ That should do it! If you successfully compiled the program, you should see a re
     <aside class="postpromonav"><nav><ul class="pager hidden-print">
 <li class="previous">
                 <a href="first_post.html" rel="prev" title="First Post: Introduction and Expectations">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="space-invaders-from-scratch-part-2.html" rel="next" title="Space Invaders from Scratch - Part 2">Next post</a>
             </li>
         </ul></nav></aside></article></main>
 </div>

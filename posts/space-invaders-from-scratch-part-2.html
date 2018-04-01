@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html prefix="            og: http://ogp.me/ns# article: http://ogp.me/ns/article#     " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Space Invaders from Scratch - Part 2 | NICK TASIOS</title>
+<link href="../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../rss.xml">
+<link rel="canonical" href="#">
+<!--[if lt IE 9]><script src="../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="space-invaders-from-scratch-part-1.html" title="Space Invaders from Scratch - Part 1" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Space Invaders from Scratch - Part 2">
+<meta property="og:url" content="/posts/space-invaders-from-scratch-part-2.html">
+<meta property="og:description" content="In this series of posts, I am going to create a clone of the classic arcade game, space invaders, in C++ using only a few dependencies. In this post I will set up the required OpenGL shaders to draw a">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2018-03-29T21:06:35+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href=".">Blog</a></li>
+                <li><a href="../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="#" class="u-url">Space Invaders from Scratch - Part 2</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="#" rel="bookmark"><time class="published dt-published" datetime="2018-03-29T21:06:35+02:00" itemprop="datePublished" title="2018-03-29 21:06">2018-03-29 21:06</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>In this series of posts, I am going to create a clone of the classic arcade game, <a href="https://en.wikipedia.org/wiki/Space_Invaders">space invaders</a>, in C++ using only a few dependencies. In this post I will set up the required OpenGL shaders to draw an alien sprite!
+<!-- TEASER_END --></p>
+<p>The complete code of this post can be found <a href="https://github.com/Grieverheart/space_invaders/blob/a7f3d2388de9a1ba31520ec6d71649af3e0d0074/main.cpp">here</a>.</p>
+<h2>CPU-Based Rendering</h2>
+<p>The GPU is good at performing operations on lots of data. The trade-off being that programming the GPU is not as easy as programming the CPU. For the simple space-invaders clone I'm building here, it's easier to just render everything on the CPU using a buffer, i.e. a chunk of memory representing the pixels on the game screen. The buffer can then be passed to the GPU as a texture, and drawn to the computer screen.</p>
+<pre class="code literal-block"><span></span><span class="k">struct</span> <span class="n">Buffer</span>
+<span class="p">{</span>
+    <span class="kt">size_t</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">;</span>
+    <span class="kt">uint32_t</span><span class="o">*</span> <span class="n">data</span><span class="p">;</span>
+<span class="p">};</span>
+</pre>
+
+
+<p>The <code>Buffer</code> has a certain width and height. We represent each pixel as a <code>uint32_t</code>, this allows us to store 4 8-bit color values for each pixel. Here, we will only use 24 bits, representing the red, green, and blue channels. Although one might argue it would have been better to use a <code>uint8_t</code>, I use a 32-bit value because it makes indexing easier. For the integer types, we also need to include the following standard header,</p>
+<pre class="code literal-block"><span></span><span class="cp">#include</span> <span class="cpf">&lt;cstdint&gt;</span><span class="cp"></span>
+</pre>
+
+
+<p>To help us define colors as <code>uint32_t</code> values, we define the following function,</p>
+<pre class="code literal-block"><span></span><span class="kt">uint32_t</span> <span class="nf">rgb_to_uint32</span><span class="p">(</span><span class="kt">uint8_t</span> <span class="n">r</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">g</span><span class="p">,</span> <span class="kt">uint8_t</span> <span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">r</span> <span class="o">&lt;&lt;</span> <span class="mi">24</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">g</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">b</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span> <span class="o">|</span> <span class="mi">255</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>which sets the left-most 24 bits to the r, g, and b values respectively. The 8 right-most bits are set to 255, although I mentioned earlier, the alpha channel is not used. If you would like to learn more, you can read <a href="http://www.fayewilliams.com/2011/09/21/bitwise-rgba-values/">this</a> tutorial.
+We then create a function to clear the buffer to a certain color,</p>
+<pre class="code literal-block"><span></span><span class="kt">void</span> <span class="nf">buffer_clear</span><span class="p">(</span><span class="n">Buffer</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">color</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">for</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">width</span> <span class="o">*</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">height</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>The function iterates over all the pixels and sets each of the pixels to the given color.</p>
+<p>In the main function, we now initialize the buffer,</p>
+<pre class="code literal-block"><span></span><span class="kt">uint32_t</span> <span class="n">clear_color</span> <span class="o">=</span> <span class="n">rgb_to_uint32</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+<span class="n">Buffer</span> <span class="n">buffer</span><span class="p">;</span>
+<span class="n">buffer</span><span class="p">.</span><span class="n">width</span>  <span class="o">=</span> <span class="n">buffer_width</span><span class="p">;</span>
+<span class="n">buffer</span><span class="p">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">buffer_height</span><span class="p">;</span>
+<span class="n">buffer</span><span class="p">.</span><span class="n">data</span>   <span class="o">=</span> <span class="k">new</span> <span class="kt">uint32_t</span><span class="p">[</span><span class="n">buffer</span><span class="p">.</span><span class="n">width</span> <span class="o">*</span> <span class="n">buffer</span><span class="p">.</span><span class="n">height</span><span class="p">];</span>
+<span class="n">buffer_clear</span><span class="p">(</span><span class="o">&amp;</span><span class="n">buffer</span><span class="p">,</span> <span class="n">clear_color</span><span class="p">);</span>
+</pre>
+
+
+<p>This will create a buffer of <code>buffer_width</code> width, and <code>buffer_height</code> height, and will set the color to the <code>clear_color</code>, i.e. green.</p>
+<h2>OpenGL Shaders</h2>
+<p>Having created the buffer, we now need to setup OpenGL to be able to display the buffer on screen. In Modern OpenGL, most responsibilities have been transferred from the OpenGL driver to the user who has to write programs that are executed by the GPU. These programs are called <a href="https://www.khronos.org/opengl/wiki/Shader">shaders</a>. Furthermore, OpenGL defines a <a href="https://www.khronos.org/opengl/wiki/Rendering_Pipeline_Overview">rendering pipeline</a>, and shaders can execute at different stages of the pipeline. Legacy OpenGL is also called "fixed pipeline" because the stages of the pipeline are not programmable, but fixed. The two most important type of shaders are the <a href="https://www.khronos.org/opengl/wiki/Vertex_Shader">Vertex</a> and <a href="https://www.khronos.org/opengl/wiki/Fragment_Shader">Fragment</a> shaders. Vertex shaders handle the processing of vertex data. Most commonly, they are used to transform objects to screen-space coordinates. After several stages, the primitives that were processed by the Vertex shader, are <a href="https://www.khronos.org/opengl/wiki/Rasterization">rasterized</a>. At this stage, the fragment shader processes the fragments generated by rasterization. Fragment shaders can output a depth value, a possible stencil value, and color values. Vertex shaders and Fragment shaders are the only shaders that are required by the rendering pipeline to function. Although you can make <a href="https://www.shadertoy.com">beautiful things with shaders</a>, here we will build a pair of simple shaders that will output the contents of the buffer we created in the previous section.</p>
+<p>For the vertex shader, we want to generate a quad that covers the screen. There is a trick, though, that allows us to instead generate a fullscreen triangle, without passing any vertex data to the shader. You can read more about this trick in <a href="https://rauwendaal.net/2014/06/14/rendering-a-screen-covering-triangle-in-opengl/">this post</a>. Here I just display the code I use in my program,</p>
+<pre class="code literal-block"><span></span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">vertex_shader</span> <span class="o">=</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"#version 330</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"noperspective out vec2 TexCoord;</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"void main(void){</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"    TexCoord.x = (gl_VertexID == 2)? 2.0: 0.0;</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"    TexCoord.y = (gl_VertexID == 1)? 2.0: 0.0;</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"    </span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"    gl_Position = vec4(2.0 * TexCoord - 1.0, 0.0, 1.0);</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"}</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</pre>
+
+
+<p>For the fragment shader, we just need to sample the buffer texture and output the result of the sampling,</p>
+<pre class="code literal-block"><span></span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fragment_shader</span> <span class="o">=</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"#version 330</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"uniform sampler2D buffer;</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"noperspective in vec2 TexCoord;</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"out vec3 outColor;</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"void main(void){</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"    outColor = texture(buffer, TexCoord).rgb;</span><span class="se">\n</span><span class="s">"</span>
+    <span class="s">"}</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+</pre>
+
+
+<p>Note how the output of the vertex shader, <code>TexCoord</code>, is now an input to the fragment shader. Although the vertex shader doesn't need any vertex data passed to it, we still need to tell it we're going to draw three vertices. For this, we create a <a href="https://www.khronos.org/opengl/wiki/Vertex_Specification#Vertex_Array_Object">vertex array object (VAO)</a>,</p>
+<pre class="code literal-block"><span></span><span class="n">GLuint</span> <span class="n">fullscreen_triangle_vao</span><span class="p">;</span>
+<span class="n">glGenVertexArrays</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fullscreen_triangle_vao</span><span class="p">);</span>
+<span class="n">glBindVertexArray</span><span class="p">(</span><span class="n">fullscreen_triangle_vao</span><span class="p">);</span>
+</pre>
+
+
+<p>Roughly, VAOs are a kind of structure in OpenGL, that stores the format of the vertex data along with the vertex data.</p>
+<p>Finally, the two shaders need to be compiled into code the GPU can understand and linked into a shader program.</p>
+<pre class="code literal-block"><span></span><span class="n">GLuint</span> <span class="n">shader_id</span> <span class="o">=</span> <span class="n">glCreateProgram</span><span class="p">();</span>
+
+<span class="c1">//Create vertex shader</span>
+<span class="p">{</span>
+    <span class="n">GLuint</span> <span class="n">shader_vp</span> <span class="o">=</span> <span class="n">glCreateShader</span><span class="p">(</span><span class="n">GL_VERTEX_SHADER</span><span class="p">);</span>
+
+    <span class="n">glShaderSource</span><span class="p">(</span><span class="n">shader_vp</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">vertex_shader</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">glCompileShader</span><span class="p">(</span><span class="n">shader_vp</span><span class="p">);</span>
+    <span class="n">validate_shader</span><span class="p">(</span><span class="n">shader_vp</span><span class="p">,</span> <span class="n">vertex_shader</span><span class="p">);</span>
+    <span class="n">glAttachShader</span><span class="p">(</span><span class="n">shader_id</span><span class="p">,</span> <span class="n">shader_vp</span><span class="p">);</span>
+
+    <span class="n">glDeleteShader</span><span class="p">(</span><span class="n">shader_vp</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">//Create fragment shader</span>
+<span class="p">{</span>
+    <span class="n">GLuint</span> <span class="n">shader_fp</span> <span class="o">=</span> <span class="n">glCreateShader</span><span class="p">(</span><span class="n">GL_FRAGMENT_SHADER</span><span class="p">);</span>
+
+    <span class="n">glShaderSource</span><span class="p">(</span><span class="n">shader_fp</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fragment_shader</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">glCompileShader</span><span class="p">(</span><span class="n">shader_fp</span><span class="p">);</span>
+    <span class="n">validate_shader</span><span class="p">(</span><span class="n">shader_fp</span><span class="p">,</span> <span class="n">fragment_shader</span><span class="p">);</span>
+    <span class="n">glAttachShader</span><span class="p">(</span><span class="n">shader_id</span><span class="p">,</span> <span class="n">shader_fp</span><span class="p">);</span>
+
+    <span class="n">glDeleteShader</span><span class="p">(</span><span class="n">shader_fp</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">glLinkProgram</span><span class="p">(</span><span class="n">shader_id</span><span class="p">);</span>
+
+<span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">validate_program</span><span class="p">(</span><span class="n">shader_id</span><span class="p">))</span>
+<span class="p">{</span>
+    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Error while validating shader.</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+    <span class="n">glfwTerminate</span><span class="p">();</span>
+    <span class="n">glDeleteVertexArrays</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fullscreen_triangle_vao</span><span class="p">);</span>
+    <span class="k">delete</span><span class="p">[]</span> <span class="n">buffer</span><span class="p">.</span><span class="n">data</span><span class="p">;</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>In the above code block, a shader program is first created using <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glCreateProgram.xhtml"><code>glCreateProgram</code></a>. Individual shaders are created with the function <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glCreateShader.xhtml"><code>glCreateShader</code></a>, and compiled using <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glCompileShader.xhtml"><code>glCompileShader</code></a>. After they are attached to the program with <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glAttachShader.xhtml"><code>glAttachShader</code></a>, they can be deleted. The program is linked using <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glLinkProgram.xhtml"><code>glLinkProgram</code></a>. OpenGL outputs various information during the compilation process, like e.g. a C++ compiler, but we need to intercept this information. For this I created two simple functions, <code>validate_shader</code> and <code>validate_program</code>,</p>
+<pre class="code literal-block"><span></span><span class="kt">void</span> <span class="nf">validate_shader</span><span class="p">(</span><span class="n">GLuint</span> <span class="n">shader</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">file</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">static</span> <span class="k">const</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">BUFFER_SIZE</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
+    <span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="n">BUFFER_SIZE</span><span class="p">];</span>
+    <span class="n">GLsizei</span> <span class="n">length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">glGetShaderInfoLog</span><span class="p">(</span><span class="n">shader</span><span class="p">,</span> <span class="n">BUFFER_SIZE</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">length</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Shader %d(%s) compile error: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+            <span class="n">shader</span><span class="p">,</span> <span class="p">(</span><span class="n">file</span> <span class="o">?</span> <span class="nl">file</span><span class="p">:</span> <span class="s">""</span><span class="p">),</span> <span class="n">buffer</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span> <span class="nf">validate_program</span><span class="p">(</span><span class="n">GLuint</span> <span class="n">program</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">static</span> <span class="k">const</span> <span class="n">GLsizei</span> <span class="n">BUFFER_SIZE</span> <span class="o">=</span> <span class="mi">512</span><span class="p">;</span>
+    <span class="n">GLchar</span> <span class="n">buffer</span><span class="p">[</span><span class="n">BUFFER_SIZE</span><span class="p">];</span>
+    <span class="n">GLsizei</span> <span class="n">length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="n">glGetProgramInfoLog</span><span class="p">(</span><span class="n">program</span><span class="p">,</span> <span class="n">BUFFER_SIZE</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">length</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Program %d link error: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">program</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span>
+        <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+
+
+<h2>Buffer Texture</h2>
+<p>To transfer image data to the GPU, we use an <a href="https://www.khronos.org/opengl/wiki/Texture">OpenGL texture</a>. As in the case of the VAO, a texture is also an object which along with the image data, holds information about the formatting of the data. We first generate a texture using the <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGenTextures.xhtml"><code>glGenTextures</code></a> function,</p>
+<pre class="code literal-block"><span></span><span class="n">GLuint</span> <span class="n">buffer_texture</span><span class="p">;</span>
+<span class="n">glGenTextures</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">buffer_texture</span><span class="p">);</span>
+</pre>
+
+
+<p>and specify the image format and some standard parameters about the behavior of the sampling of the texture,</p>
+<pre class="code literal-block"><span></span><span class="n">glBindTexture</span><span class="p">(</span><span class="n">GL_TEXTURE_2D</span><span class="p">,</span> <span class="n">buffer_texture</span><span class="p">);</span>
+<span class="n">glTexImage2D</span><span class="p">(</span>
+    <span class="n">GL_TEXTURE_2D</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">GL_RGB8</span><span class="p">,</span>
+    <span class="n">buffer</span><span class="p">.</span><span class="n">width</span><span class="p">,</span> <span class="n">buffer</span><span class="p">.</span><span class="n">height</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">GL_RGBA</span><span class="p">,</span> <span class="n">GL_UNSIGNED_INT_8_8_8_8</span><span class="p">,</span> <span class="n">buffer</span><span class="p">.</span><span class="n">data</span>
+<span class="p">);</span>
+<span class="n">glTexParameteri</span><span class="p">(</span><span class="n">GL_TEXTURE_2D</span><span class="p">,</span> <span class="n">GL_TEXTURE_MIN_FILTER</span><span class="p">,</span> <span class="n">GL_NEAREST</span><span class="p">);</span>
+<span class="n">glTexParameteri</span><span class="p">(</span><span class="n">GL_TEXTURE_2D</span><span class="p">,</span> <span class="n">GL_TEXTURE_MAG_FILTER</span><span class="p">,</span> <span class="n">GL_NEAREST</span><span class="p">);</span>
+<span class="n">glTexParameteri</span><span class="p">(</span><span class="n">GL_TEXTURE_2D</span><span class="p">,</span> <span class="n">GL_TEXTURE_WRAP_S</span><span class="p">,</span> <span class="n">GL_CLAMP_TO_EDGE</span><span class="p">);</span>
+<span class="n">glTexParameteri</span><span class="p">(</span><span class="n">GL_TEXTURE_2D</span><span class="p">,</span> <span class="n">GL_TEXTURE_WRAP_T</span><span class="p">,</span> <span class="n">GL_CLAMP_TO_EDGE</span><span class="p">);</span>
+</pre>
+
+
+<p>Here, we specify that the image should use an 8-bit rgb format to represent the texture internally. The last three parameters of the call to <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml"><code>glTexImage2D</code></a> specify the pixel format of the data we pass to the texture; each pixel is in the rgba format and is represented as 4 unsigned 8-bit integers. The two first <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexParameter.xhtml"><code>glTexParameteri</code></a> calls tell the GPU to not apply any filtering (smoothing) when reading pixels. The last two calls tell it that if it tries to read beyond the texture bounds, it will use the value at the edges instead.</p>
+<p>We now need to attach the texture to the <code>uniform sampler2D</code> variable in the fragment shader. OpenGL has a number of texture units to which a uniform can be attached. We get the location of the uniform in the shader (the uniform location can be seen as a kind of "pointer") using <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetUniformLocation.xhtml"><code>glGetUniformLocation</code></a>, and set the uniform to texture unit '0' using <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glUniform.xhtml"><code>glUniform1i</code></a>,</p>
+<pre class="code literal-block"><span></span><span class="n">GLint</span> <span class="n">location</span> <span class="o">=</span> <span class="n">glGetUniformLocation</span><span class="p">(</span><span class="n">shader_id</span><span class="p">,</span> <span class="s">"buffer"</span><span class="p">);</span>
+<span class="n">glUniform1i</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</pre>
+
+
+<h2>Buffer Display</h2>
+<p>We have finally set up everything that's needed to display the buffer on our screen. Just before the game loop, we disable depth testing and bind the vertex array we created previously,</p>
+<pre class="code literal-block"><span></span><span class="n">glDisable</span><span class="p">(</span><span class="n">GL_DEPTH_TEST</span><span class="p">);</span>
+<span class="n">glBindVertexArray</span><span class="p">(</span><span class="n">fullscreen_triangle_vao</span><span class="p">);</span>
+</pre>
+
+
+<p>If we now call</p>
+<pre class="code literal-block"><span></span><span class="n">glDrawArrays</span><span class="p">(</span><span class="n">GL_TRIANGLES</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">);</span>
+</pre>
+
+
+<p>the contents of the window that gets created should be green.
+<img src="../files/space-invaders-window-2.png" width="224px" style="display:block;"></p>
+<h2>Sprite Drawing</h2>
+<p>We already created a window and displayed some color on it in the last post. Ending this post with the same result would be a bit boring, so let's draw something.</p>
+<p>I first define a simple sprite,</p>
+<pre class="code literal-block"><span></span><span class="k">struct</span> <span class="n">Sprite</span>
+<span class="p">{</span>
+    <span class="kt">size_t</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">;</span>
+    <span class="kt">uint8_t</span><span class="o">*</span> <span class="n">data</span><span class="p">;</span>
+<span class="p">};</span>
+</pre>
+
+
+<p>This is just a blob of heap-allocated data, along with the width and height of the sprite. The sprite is represented as a bitmap, i.e. each pixel is represented by a single bit, with 1 indicating that the sprite pixel is "on". We then create a function to draw the sprite in the buffer with a specified color,</p>
+<pre class="code literal-block"><span></span><span class="kt">void</span> <span class="nf">buffer_sprite_draw</span><span class="p">(</span>
+    <span class="n">Buffer</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span> <span class="k">const</span> <span class="n">Sprite</span><span class="o">&amp;</span> <span class="n">sprite</span><span class="p">,</span>
+    <span class="kt">size_t</span> <span class="n">x</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">y</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">color</span>
+<span class="p">){</span>
+    <span class="k">for</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">xi</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">xi</span> <span class="o">&lt;</span> <span class="n">sprite</span><span class="p">.</span><span class="n">width</span><span class="p">;</span> <span class="o">++</span><span class="n">xi</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">for</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">yi</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">yi</span> <span class="o">&lt;</span> <span class="n">sprite</span><span class="p">.</span><span class="n">height</span><span class="p">;</span> <span class="o">++</span><span class="n">yi</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span><span class="p">(</span><span class="n">sprite</span><span class="p">.</span><span class="n">data</span><span class="p">[</span><span class="n">yi</span> <span class="o">*</span> <span class="n">sprite</span><span class="p">.</span><span class="n">width</span> <span class="o">+</span> <span class="n">xi</span><span class="p">]</span> <span class="o">&amp;&amp;</span>
+               <span class="p">(</span><span class="n">sprite</span><span class="p">.</span><span class="n">height</span> <span class="o">+</span> <span class="n">y</span> <span class="o">-</span> <span class="n">yi</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">height</span> <span class="o">&amp;&amp;</span>
+               <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">xi</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">width</span><span class="p">)</span> 
+            <span class="p">{</span>
+                <span class="kt">size_t</span> <span class="n">sy</span> <span class="o">=</span> <span class="n">sprite</span><span class="p">.</span><span class="n">height</span> <span class="o">+</span> <span class="n">y</span> <span class="o">-</span> <span class="n">yi</span><span class="p">;</span>
+                <span class="kt">size_t</span> <span class="n">sx</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">xi</span><span class="p">;</span>
+                <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">[</span><span class="n">sy</span> <span class="o">*</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">width</span> <span class="o">+</span> <span class="n">sx</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>The function just goes over the sprite pixels and draws the "on" pixels at the specified coordinates if they are within the buffer bounds. Alternatively, one could represent the sprite in the same way we defined the buffer, i.e. each pixel being a 32-bit rgba value, with the alpha value used for transparency/blending.</p>
+<p>In the main function, we create an alien sprite,</p>
+<pre class="code literal-block"><span></span><span class="n">Sprite</span> <span class="n">alien_sprite</span><span class="p">;</span>
+<span class="n">alien_sprite</span><span class="p">.</span><span class="n">width</span> <span class="o">=</span> <span class="mi">11</span><span class="p">;</span>
+<span class="n">alien_sprite</span><span class="p">.</span><span class="n">height</span> <span class="o">=</span> <span class="mi">8</span><span class="p">;</span>
+<span class="n">alien_sprite</span><span class="p">.</span><span class="n">data</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">uint8_t</span><span class="p">[</span><span class="mi">11</span> <span class="o">*</span> <span class="mi">8</span><span class="p">]</span>
+<span class="p">{</span>
+    <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="c1">// ..@.....@..</span>
+    <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="c1">// ...@...@...</span>
+    <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="c1">// ..@@@@@@@..</span>
+    <span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="c1">// .@@.@@@.@@.</span>
+    <span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span> <span class="c1">// @@@@@@@@@@@</span>
+    <span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span> <span class="c1">// @.@@@@@@@.@</span>
+    <span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span> <span class="c1">// @.@.....@.@</span>
+    <span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span>  <span class="c1">// ...@@.@@...</span>
+<span class="p">};</span>
+</pre>
+
+
+<p>To draw a red sprite at position (112, 128), we call,</p>
+<pre class="code literal-block"><span></span><span class="n">buffer_sprite_draw</span><span class="p">(</span><span class="o">&amp;</span><span class="n">buffer</span><span class="p">,</span> <span class="n">alien_sprite</span><span class="p">,</span>
+    <span class="mi">112</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">rgb_to_uint32</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">));</span>
+</pre>
+
+
+<p>To prepare for the next steps, we clear the buffer and draw the sprite each frame of the game loop. To update the OpenGL texture, we call <a href="https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexSubImage2D.xhtml"><code>glTexSubImage2D</code></a></p>
+<pre class="code literal-block"><span></span><span class="n">glTexSubImage2D</span><span class="p">(</span>
+    <span class="n">GL_TEXTURE_2D</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">buffer</span><span class="p">.</span><span class="n">width</span><span class="p">,</span> <span class="n">buffer</span><span class="p">.</span><span class="n">height</span><span class="p">,</span>
+    <span class="n">GL_RGBA</span><span class="p">,</span> <span class="n">GL_UNSIGNED_INT_8_8_8_8</span><span class="p">,</span>
+    <span class="n">buffer</span><span class="p">.</span><span class="n">data</span>
+<span class="p">);</span>
+</pre>
+
+
+<p>If you compile and run the final code of this post, <a href="https://github.com/Grieverheart/space_invaders/blob/a7f3d2388de9a1ba31520ec6d71649af3e0d0074/main.cpp">here</a>, you should see a red texture in the middle of a green background.
+<img src="../files/space-invaders-window-3.png" width="224px" style="display:block;"></p>
+<h2>Conclusion</h2>
+<p>In this post, we set up some plumbing so that we could draw sprites on the CPU and display them on the window we created in the last post. In modern OpenGL this is quite some work, as we touched vertex buffer objects, shaders, and textures. Having set our drawing routines, we can now start focusing on more exciting things, such as programming the game logic.</p>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="space-invaders-from-scratch-part-1.html" rel="prev" title="Space Invaders from Scratch - Part 1">Previous post</a>
+            </li>
+        </ul></nav></aside></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
