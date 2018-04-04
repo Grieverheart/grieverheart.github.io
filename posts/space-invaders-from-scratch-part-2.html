@@ -64,7 +64,7 @@
     <div>
 <p>In this series of posts, I am going to create a clone of the classic arcade game, <a href="https://en.wikipedia.org/wiki/Space_Invaders">space invaders</a>, in C++ using only a few dependencies. In this post I will set up the required OpenGL shaders to draw an alien sprite!
 <!-- TEASER_END --></p>
-<p>The complete code of this post can be found <a href="https://github.com/Grieverheart/space_invaders/blob/a7f3d2388de9a1ba31520ec6d71649af3e0d0074/main.cpp">here</a>.</p>
+<p>The complete code of this post can be found <a href="https://github.com/Grieverheart/space_invaders/blob/10c9f24eec222d66a22ee1868ae598a6803eea1d/main.cpp">here</a>.</p>
 <h2>CPU-Based Rendering</h2>
 <p>The GPU is good at performing operations on lots of data. The trade-off being that programming the GPU is not as easy as programming the CPU. For the simple space-invaders clone I'm building here, it's easier to just render everything on the CPU using a buffer, i.e. a chunk of memory representing the pixels on the game screen. The buffer can then be passed to the GPU as a texture, and drawn to the computer screen.</p>
 <pre class="code literal-block"><span></span><span class="k">struct</span> <span class="n">Buffer</span>
@@ -292,12 +292,11 @@ We then create a function to clear the buffer to a certain color,</p>
     <span class="p">{</span>
         <span class="k">for</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">yi</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">yi</span> <span class="o">&lt;</span> <span class="n">sprite</span><span class="p">.</span><span class="n">height</span><span class="p">;</span> <span class="o">++</span><span class="n">yi</span><span class="p">)</span>
         <span class="p">{</span>
+            <span class="kt">size_t</span> <span class="n">sy</span> <span class="o">=</span> <span class="n">sprite</span><span class="p">.</span><span class="n">height</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">y</span> <span class="o">-</span> <span class="n">yi</span><span class="p">;</span>
+            <span class="kt">size_t</span> <span class="n">sx</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">xi</span><span class="p">;</span>
             <span class="k">if</span><span class="p">(</span><span class="n">sprite</span><span class="p">.</span><span class="n">data</span><span class="p">[</span><span class="n">yi</span> <span class="o">*</span> <span class="n">sprite</span><span class="p">.</span><span class="n">width</span> <span class="o">+</span> <span class="n">xi</span><span class="p">]</span> <span class="o">&amp;&amp;</span>
-               <span class="p">(</span><span class="n">sprite</span><span class="p">.</span><span class="n">height</span> <span class="o">+</span> <span class="n">y</span> <span class="o">-</span> <span class="n">yi</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">height</span> <span class="o">&amp;&amp;</span>
-               <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">xi</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">width</span><span class="p">)</span> 
+               <span class="n">sy</span> <span class="o">&lt;</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">height</span> <span class="o">&amp;&amp;</span> <span class="n">sx</span> <span class="o">&lt;</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">width</span><span class="p">)</span> 
             <span class="p">{</span>
-                <span class="kt">size_t</span> <span class="n">sy</span> <span class="o">=</span> <span class="n">sprite</span><span class="p">.</span><span class="n">height</span> <span class="o">+</span> <span class="n">y</span> <span class="o">-</span> <span class="n">yi</span><span class="p">;</span>
-                <span class="kt">size_t</span> <span class="n">sx</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">xi</span><span class="p">;</span>
                 <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">[</span><span class="n">sy</span> <span class="o">*</span> <span class="n">buffer</span><span class="o">-&gt;</span><span class="n">width</span> <span class="o">+</span> <span class="n">sx</span><span class="p">]</span> <span class="o">=</span> <span class="n">color</span><span class="p">;</span>
             <span class="p">}</span>
         <span class="p">}</span>
@@ -341,7 +340,7 @@ We then create a function to clear the buffer to a certain color,</p>
 </pre>
 
 
-<p>If you compile and run the final code of this post, <a href="https://github.com/Grieverheart/space_invaders/blob/a7f3d2388de9a1ba31520ec6d71649af3e0d0074/main.cpp">here</a>, you should see a red texture in the middle of a green background.
+<p>If you compile and run the final code of this post, <a href="https://github.com/Grieverheart/space_invaders/blob/10c9f24eec222d66a22ee1868ae598a6803eea1d/main.cpp">here</a>, you should see a red texture in the middle of a green background.
 <img src="../files/space-invaders-window-3.png" width="224px" style="display:block;"></p>
 <h2>Conclusion</h2>
 <p>In this post, we set up some plumbing so that we could draw sprites on the CPU and display them on the window we created in the last post. In modern OpenGL this is quite some work, as we touched vertex buffer objects, shaders, and textures. Having set our drawing routines, we can now start focusing on more exciting things, such as programming the game logic.</p>
