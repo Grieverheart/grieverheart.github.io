@@ -13,7 +13,7 @@
 In this series of posts, I am going to create a clone of the classic arcade game, [space invaders](https://en.wikipedia.org/wiki/Space_Invaders), in C++ using only a few dependencies. In this post I will set up the required OpenGL shaders to draw an alien sprite!
 <!-- TEASER_END -->
 
-The complete code of this post can be found [here](https://github.com/Grieverheart/space_invaders/blob/a7f3d2388de9a1ba31520ec6d71649af3e0d0074/main.cpp).
+The complete code of this post can be found [here](https://github.com/Grieverheart/space_invaders/blob/10c9f24eec222d66a22ee1868ae598a6803eea1d/main.cpp).
 
 # CPU-Based Rendering
 
@@ -242,12 +242,11 @@ void buffer_sprite_draw(
     {
         for(size_t yi = 0; yi < sprite.height; ++yi)
         {
+            size_t sy = sprite.height - 1 + y - yi;
+            size_t sx = x + xi;
             if(sprite.data[yi * sprite.width + xi] &&
-               (sprite.height + y - yi) < buffer->height &&
-               (x + xi) < buffer->width) 
+               sy < buffer->height && sx < buffer->width) 
             {
-                size_t sy = sprite.height + y - yi;
-                size_t sx = x + xi;
                 buffer->data[sy * buffer->width + sx] = color;
             }
         }
@@ -287,7 +286,7 @@ glTexSubImage2D(
     buffer.data
 );
 ```
-If you compile and run the final code of this post, [here](https://github.com/Grieverheart/space_invaders/blob/a7f3d2388de9a1ba31520ec6d71649af3e0d0074/main.cpp), you should see a red texture in the middle of a green background.
+If you compile and run the final code of this post, [here](https://github.com/Grieverheart/space_invaders/blob/10c9f24eec222d66a22ee1868ae598a6803eea1d/main.cpp), you should see a red texture in the middle of a green background.
 <img src="/files/space-invaders-window-3.png" width="224px" style="display:block;"/>
 
 # Conclusion
