@@ -7,54 +7,58 @@
                         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <url>
   <loc>/</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/about/</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/categories/</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/posts/</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/posts/first_post.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/posts/space-invaders-from-scratch-part-1.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/posts/space-invaders-from-scratch-part-2.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
+ </url>
+ <url>
+  <loc>/posts/space-invaders-from-scratch-part-3.html</loc>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/SimpleEDMD.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/inip.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/ions3D.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/ntcd.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
  <url>
   <loc>/projects/partviewer.html</loc>
-  <lastmod>2018-04-04T16:24:00Z</lastmod>
+  <lastmod>2018-04-30T14:42:00Z</lastmod>
  </url>
 </urlset>
