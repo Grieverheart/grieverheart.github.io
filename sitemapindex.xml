@@ -6,11 +6,11 @@
     xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
                         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <sitemap>
-  <loc>/rss.xml</loc>
-  <lastmod>2018-05-27T09:07:00Z</lastmod>
+  <loc>http://www.nicktasios.nl/rss.xml</loc>
+  <lastmod>2018-05-27T09:58:00Z</lastmod>
  </sitemap>
  <sitemap>
-  <loc>/sitemap.xml</loc>
-  <lastmod>2018-05-27T09:07:00Z</lastmod>
+  <loc>http://www.nicktasios.nl/sitemap.xml</loc>
+  <lastmod>2018-05-27T09:58:00Z</lastmod>
  </sitemap>
 </sitemapindex>

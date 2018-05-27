@@ -1,4 +1,4 @@
-Sitemap: /sitemapindex.xml
+Sitemap: http://www.nicktasios.nl/sitemapindex.xml
 
 User-Agent: *
-Host: 
+Host: www.nicktasios.nl
