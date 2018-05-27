@@ -2,7 +2,8 @@
 .. title: Space Invaders from Scratch - Part 4
 .. slug: space-invaders-from-scratch-part-4
 .. date: 2018-05-26 10:51:44 UTC+02:00
-.. tags: 
+.. tags:
+.. previewimage: /files/space-invaders-bullets.png
 .. category: 
 .. link: 
 .. description: 
