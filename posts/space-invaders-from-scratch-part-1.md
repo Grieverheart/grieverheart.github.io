@@ -133,11 +133,11 @@ glfwTerminate();
 
 The complete code of this post can be found [here](https://github.com/Grieverheart/space_invaders/blob/4ebf869c7bd1c7541a5db80f3f8d52fc62e1f389/main.cpp). To compile it under Linux using g++, issue the following command on the terminal,
 ```
-g++ -std=c++11 -o main -lglfw -lglew -framework OpenGL main.cpp
+g++ -std=c++11 -o main -lglfw -lGLEW -lGL main.cpp
 ```
 and on Mac OS X using the [Xcode command line tools](http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/),
 ```
-g++ -std=c++11 -o main -lglfw -lGLEW -lGL main.cpp
+g++ -std=c++11 -o main -lglfw -lglew -framework OpenGL main.cpp
 ```
 Note that we are going to use some C++11 features later on, so we compile with `-std=c++11`. In both cases, make sure you have GLFW 3 installed. On Linux, depending on your distribution, you can use your package manager, e.g. on Ubuntu you can install GLFW with the following command,
 ```
