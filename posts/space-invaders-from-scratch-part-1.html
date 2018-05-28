@@ -185,12 +185,12 @@ The OpenGL specification defines many functions, and your graphics driver may no
 
 <h2>Compiling</h2>
 <p>The complete code of this post can be found <a href="https://github.com/Grieverheart/space_invaders/blob/4ebf869c7bd1c7541a5db80f3f8d52fc62e1f389/main.cpp">here</a>. To compile it under Linux using g++, issue the following command on the terminal,</p>
-<pre class="code literal-block"><span></span>g++ -std=c++11 -o main -lglfw -lglew -framework OpenGL main.cpp
+<pre class="code literal-block"><span></span>g++ -std=c++11 -o main -lglfw -lGLEW -lGL main.cpp
 </pre>
 
 
 <p>and on Mac OS X using the <a href="http://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/">Xcode command line tools</a>,</p>
-<pre class="code literal-block"><span></span>g++ -std=c++11 -o main -lglfw -lGLEW -lGL main.cpp
+<pre class="code literal-block"><span></span>g++ -std=c++11 -o main -lglfw -lglew -framework OpenGL main.cpp
 </pre>
 
 
