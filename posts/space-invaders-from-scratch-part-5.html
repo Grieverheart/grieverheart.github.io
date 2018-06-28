@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html prefix="            og: http://ogp.me/ns# article: http://ogp.me/ns/article#     " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Space Invaders from Scratch - Part 5 | NICK TASIOS</title>
+<link href="../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-5.html">
+<!--[if lt IE 9]><script src="../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="space-invaders-from-scratch-part-4.html" title="Space Invaders from Scratch - Part 4" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Space Invaders from Scratch - Part 5">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-5.html">
+<meta property="og:description" content="In this series of posts, I am going to create a clone of the classic arcade game, space invaders, in C++ using only a few dependencies. In this last post of the series, I will handle scoring and add r">
+<meta property="og:image" content="http://www.nicktasios.nl/files/space-invaders-window-5.png">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2018-06-28T20:36:14+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href=".">Blog</a></li>
+                <li><a href="../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="#" class="u-url">Space Invaders from Scratch - Part 5</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="#" rel="bookmark"><time class="published dt-published" datetime="2018-06-28T20:36:14+02:00" itemprop="datePublished" title="2018-06-28 20:36">2018-06-28 20:36</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>In this series of posts, I am going to create a clone of the classic arcade game, <a href="https://en.wikipedia.org/wiki/Space_Invaders">space invaders</a>, in C++ using only a few dependencies. In this last post of the series, I will handle scoring and add routines for drawing text and other UI elements.
+<!-- TEASER_END --></p>
+<p>The complete code of this post can be found <a href="https://github.com/Grieverheart/space_invaders/blob/8af7bd8336fb08342e5c53090ff3a6aac0af48c6/main.cpp">here</a>.</p>
+<h2>No High Score with no Score</h2>
+<p><img src="../files/space-invaders-high-score.jpg" width="240px" style="display:block;">
+When video games were taking their brave first baby steps into this world, things were quite simple, they often did not have an end-goal, instead they used 'score' as means to quantify the success, or failure, of the player. Scoring also offered players a means to challenge each other in 'beating' their 'high score', and thus game makers could capitalize on players for a longer period, despite the limited amount of entertainment a game could offer, which, of course, was a direct consequence of the limitations of the hardware of the time.</p>
+<p>Space invaders only has one stage. When you defeat all aliens, the stage restarts and aliens re-spawn. The only thing that was kept constant after a stage was cleared were the player lives and his score. So the first thing I'm going to do is declare a variable to keep track of the score,</p>
+<pre class="code literal-block"><span></span><span class="kt">size_t</span> <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</pre>
+
+
+<p>The score is increased by a certain amount when the player hits an alien, I choose to give between 10 and 40 points based on the alien type like so,</p>
+<pre class="code literal-block"><span></span><span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">-</span> <span class="n">game</span><span class="p">.</span><span class="n">aliens</span><span class="p">[</span><span class="n">ai</span><span class="p">].</span><span class="n">type</span><span class="p">);</span>
+</pre>
+
+
+<p>which is inserted in the main loop when we detect the bullet hitting the alien.</p>
+<p>And with this little bit of code we can keep track of the player's score. Displaying it on the screen, though, is a bit more involved.</p>
+<h2>You can now create a text editor</h2>
+<p>We will handle drawing text and numbers like any other sprite in our game. For this reason, we define a new spritesheet containing 65 5x7 <a href="https://en.wikipedia.org/wiki/ASCII">ASCII</a> character sprites starting from 'space', which has the value of 32 in ASCII, up to character '`', which has ASCII value 96. Note that we only include uppercase letters and a few special characters. I am not going to include the whole spritesheet as it is too big, but you are free to have a look at this week's code.</p>
+<p>To draw the text, we define a new function,</p>
+<pre class="code literal-block"><span></span><span class="kt">void</span> <span class="nf">buffer_draw_text</span><span class="p">(</span>
+    <span class="n">Buffer</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span>
+    <span class="k">const</span> <span class="n">Sprite</span><span class="o">&amp;</span> <span class="n">text_spritesheet</span><span class="p">,</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">text</span><span class="p">,</span>
+    <span class="kt">size_t</span> <span class="n">x</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">y</span><span class="p">,</span>
+    <span class="kt">uint32_t</span> <span class="n">color</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">size_t</span> <span class="n">xp</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+    <span class="kt">size_t</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">text_spritesheet</span><span class="p">.</span><span class="n">width</span> <span class="o">*</span> <span class="n">text_spritesheet</span><span class="p">.</span><span class="n">height</span><span class="p">;</span>
+    <span class="n">Sprite</span> <span class="n">sprite</span> <span class="o">=</span> <span class="n">text_spritesheet</span><span class="p">;</span>
+    <span class="k">for</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">charp</span> <span class="o">=</span> <span class="n">text</span><span class="p">;</span> <span class="o">*</span><span class="n">charp</span> <span class="o">!=</span> <span class="sc">'\0'</span><span class="p">;</span> <span class="o">++</span><span class="n">charp</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">char</span> <span class="n">character</span> <span class="o">=</span> <span class="o">*</span><span class="n">charp</span> <span class="o">-</span> <span class="mi">32</span><span class="p">;</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">character</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">||</span> <span class="n">character</span> <span class="o">&gt;=</span> <span class="mi">65</span><span class="p">)</span> <span class="k">continue</span><span class="p">;</span>
+
+        <span class="n">sprite</span><span class="p">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">text_spritesheet</span><span class="p">.</span><span class="n">data</span> <span class="o">+</span> <span class="n">character</span> <span class="o">*</span> <span class="n">stride</span><span class="p">;</span>
+        <span class="n">buffer_draw_sprite</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">sprite</span><span class="p">,</span> <span class="n">xp</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="p">);</span>
+        <span class="n">xp</span> <span class="o">+=</span> <span class="n">sprite</span><span class="p">.</span><span class="n">width</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>which takes a piece of text and draws it in the buffer at the specified coordinates and with the specified color, like we do with sprites. The function simply iterates through all of the characters in the text until the <a href="https://en.wikipedia.org/wiki/Null-terminated_string">null character</a>, i.e. the string termination character, is encountered, and draws each character using <code>buffer_draw_sprite</code>. The tricky part is getting the correct character from the spritesheet and correctly drawing characters, correctly spaced, from left to right. We achieve the first by indexing the character into the spritesheet by, <code>(c - 32) * stride</code>, where stride is the size of one character sprite, i.e. 7×5 = 35. The character drawing position, <code>xp</code>, is moved by the sprite width incremented by 1.</p>
+<p>We define one last function for drawing numbers. The easiest here would be to use something like <a href="https://en.cppreference.com/w/cpp/io/c/fprintf"><code>snprintf</code></a> to convert a number, the score, to a string and then use <code>buffer_draw_text</code> to draw the number, but let's try to separate the number into digits ourselves,</p>
+<pre class="code literal-block"><span></span><span class="kt">void</span> <span class="nf">buffer_draw_number</span><span class="p">(</span>
+    <span class="n">Buffer</span><span class="o">*</span> <span class="n">buffer</span><span class="p">,</span>
+    <span class="k">const</span> <span class="n">Sprite</span><span class="o">&amp;</span> <span class="n">number_spritesheet</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">number</span><span class="p">,</span>
+    <span class="kt">size_t</span> <span class="n">x</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">y</span><span class="p">,</span>
+    <span class="kt">uint32_t</span> <span class="n">color</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">uint8_t</span> <span class="n">digits</span><span class="p">[</span><span class="mi">64</span><span class="p">];</span>
+    <span class="kt">size_t</span> <span class="n">num_digits</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+    <span class="kt">size_t</span> <span class="n">current_number</span> <span class="o">=</span> <span class="n">number</span><span class="p">;</span>
+    <span class="k">do</span>
+    <span class="p">{</span>
+        <span class="n">digits</span><span class="p">[</span><span class="n">num_digits</span><span class="o">++</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_number</span> <span class="o">%</span> <span class="mi">10</span><span class="p">;</span>
+        <span class="n">current_number</span> <span class="o">=</span> <span class="n">current_number</span> <span class="o">/</span> <span class="mi">10</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">while</span><span class="p">(</span><span class="n">current_number</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">);</span>
+
+    <span class="kt">size_t</span> <span class="n">xp</span> <span class="o">=</span> <span class="n">x</span><span class="p">;</span>
+    <span class="kt">size_t</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">number_spritesheet</span><span class="p">.</span><span class="n">width</span> <span class="o">*</span> <span class="n">number_spritesheet</span><span class="p">.</span><span class="n">height</span><span class="p">;</span>
+    <span class="n">Sprite</span> <span class="n">sprite</span> <span class="o">=</span> <span class="n">number_spritesheet</span><span class="p">;</span>
+    <span class="k">for</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_digits</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">uint8_t</span> <span class="n">digit</span> <span class="o">=</span> <span class="n">digits</span><span class="p">[</span><span class="n">num_digits</span> <span class="o">-</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">];</span>
+        <span class="n">sprite</span><span class="p">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">number_spritesheet</span><span class="p">.</span><span class="n">data</span> <span class="o">+</span> <span class="n">digit</span> <span class="o">*</span> <span class="n">stride</span><span class="p">;</span>
+        <span class="n">buffer_draw_sprite</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">sprite</span><span class="p">,</span> <span class="n">xp</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="p">);</span>
+        <span class="n">xp</span> <span class="o">+=</span> <span class="n">sprite</span><span class="p">.</span><span class="n">width</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>Note that the <code>number_spritesheet</code> is just a reference into the <code>text_spritesheet</code> starting at sprite position 16. The second part of the function is very similar to that of <code>buffer_draw_text</code>. Getting the digits of the number is done inside the do-while loop. We basically find the last digit of the number by taking the remainder of the division by 10 (modulo operation), we then do an integer multiplication to basically shift the number to the right, and repeat until we have nothing left. Although we could have opted for the <code>snprintf</code> solution, it is good to know how some of these basic operations work.</p>
+<p>In the main loop, after clearing the buffer, we draw the text 'SCORE',</p>
+<pre class="code literal-block"><span></span><span class="n">buffer_draw_text</span><span class="p">(</span>
+    <span class="o">&amp;</span><span class="n">buffer</span><span class="p">,</span>
+    <span class="n">text_spritesheet</span><span class="p">,</span> <span class="s">"SCORE"</span><span class="p">,</span>
+    <span class="mi">4</span><span class="p">,</span> <span class="n">game</span><span class="p">.</span><span class="n">height</span> <span class="o">-</span> <span class="n">text_spritesheet</span><span class="p">.</span><span class="n">height</span> <span class="o">-</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="n">rgb_to_uint32</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">);</span>
+</pre>
+
+
+<p>and a little bit to the right, we draw the score,</p>
+<pre class="code literal-block"><span></span>buffer_draw_number(
+    &amp;buffer,
+    number_spritesheet, score,
+    4 + 2 * number_spritesheet.width, game.height - 2 * number_spritesheet.height - 12,
+    rgb_to_uint32(128, 0, 0)
+);
+</pre>
+
+
+<p>although we don't use credits in our Space Invaders game, just for the novelty, we also draw the text 'CREDIT 00' at the bottom of the buffer,</p>
+<pre class="code literal-block"><span></span><span class="n">buffer_draw_text</span><span class="p">(</span>
+    <span class="o">&amp;</span><span class="n">buffer</span><span class="p">,</span>
+    <span class="n">text_spritesheet</span><span class="p">,</span> <span class="s">"CREDIT 00"</span><span class="p">,</span>
+    <span class="mi">164</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="n">rgb_to_uint32</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">);</span>
+</pre>
+
+
+<p>As a finishing touch, we draw a horizontal line just above the credit text.</p>
+<pre class="code literal-block"><span></span><span class="k">for</span><span class="p">(</span><span class="kt">size_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">game</span><span class="p">.</span><span class="n">width</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">buffer</span><span class="p">.</span><span class="n">data</span><span class="p">[</span><span class="n">game</span><span class="p">.</span><span class="n">width</span> <span class="o">*</span> <span class="mi">16</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">rgb_to_uint32</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>And here is the final result,
+<img src="../files/space-invaders-window-5.png" width="224px" style="display:block;"></p>
+<h2>Conclusion</h2>
+<p>As you might have realised, the game is not complete. What is still missing is the alien bullets and the alien bullet-player and bullet-bullet collision detection. Moreover, in the original game the aliens were obviously not stationary, but move from left to right and from right to left towards the player. Creating a blog post about adding all these features would not be instructive. We have implemented all the required tools needed, so you could finish implementing your own version of the game or you could even change the logic completely, you could perhaps combine Space Invaders with <a href="https://en.wikipedia.org/wiki/Breakout_(video_game)">Breakout</a>. I have implemented most of these features <a href="https://github.com/Grieverheart/space_invaders/blob/master/main.cpp">here</a>, which you can use as a reference if you'd like.</p>
+<p>In this last post of the series, we setup code for drawing text and numbers in our game. With all this code we have implemented, we can already create many different games, even a text adventure with your own custom font. That's the nice thing about programming, as you gain more experience, you develop a set of tools/pieces of reusable code which evolve along over time. This positive feedback loop allows you to create increasingly complex programs. Compared to a traditional game engine you have to put an increased initial effort to learn to program games from scratch, but the flexibility you get in return is worth sticking to it. Hopefully, this series has also convinced you that doing so can be fun!</p>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="space-invaders-from-scratch-part-4.html" rel="prev" title="Space Invaders from Scratch - Part 4">Previous post</a>
+            </li>
+        </ul></nav></aside></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
