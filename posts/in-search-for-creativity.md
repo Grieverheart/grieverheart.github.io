@@ -3,7 +3,7 @@
 .. slug: in-search-for-creativity
 .. date: 2019-06-28 21:00:58 UTC+02:00
 .. tags: 
-.. previewimage: /files/creativity.png
+.. previewimage: /files/creativity.jpg
 .. category: 
 .. link: 
 .. description: 
