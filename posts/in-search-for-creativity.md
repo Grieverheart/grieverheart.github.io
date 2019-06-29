@@ -1,7 +1,7 @@
 <!--
 .. title: How coming up with an idea for my first game helped me discover how to be more creative
-.. slug: its-been-a-while
-.. date: 2019-06-24 21:00:58 UTC+02:00
+.. slug: in-search-for-creativity
+.. date: 2019-06-28 21:00:58 UTC+02:00
 .. tags: 
 .. previewimage: /files/creativity.png
 .. category: 
@@ -24,7 +24,7 @@ Thus, I kept thinking to myself, 'I have been through this before. If only I can
 
 <img src="/files/creativity.jpg" style="display:block; padding:1em 0;"/>
 
-What I often do when I'm trying to become better at a certain thing, is trying to establish the various factors that contribute to certain people being good at what they do -- learning by imitation is powerful! Doing this already gave me a few clues; my interests had become narrow. When I was still at school I would draw, play the guitar, learn new languages, play with lego, hang out with friends, sport, often all in one day. Of course, I had more free time, I told myself. But that is never a good excuse. Another thing I realized at that time, while thinking how I was more creative when I was young, was that being bored is actually really good for creativity. Thus, I identified two crucial aspects of creativity. The first point is that **creativity needs fuel**. The more diverse and well-rounded you become, the more connections you will be able to make, relating seemingly unrelated things in unexpected ways. The second point is that **you need to listen to your creative voice**. For better or for worse the digital age has brought many quality of life improvements, but we have payed the price with our attention (and personal data). We are wired for prioritizing instant gratification. This has become common knowledge by all the companies that are constantly bombarding us with all kinds of stimuli. For every stimulus we react to, we silence our creative voice. Do this long enough and you can completely forget it is there at all.
+What I often do when I'm trying to improve myself, is trying to establish the various factors that contribute to certain people being successful at what they do -- learning by imitation is powerful! Doing this already gave me a few clues; my interests had become narrow. When I was still at school I would draw, play the guitar, learn new languages, play with lego, hang out with friends, sport, often all in one day. Of course, I had more free time, I told myself. But that is never a good excuse. Another thing I realized at that time, while thinking how I was more creative when I was young, was that being bored is actually really good for creativity. Thus, I identified two crucial aspects of creativity. The first point is that **creativity needs fuel**. The more diverse and well-rounded you become, the more connections you will be able to make, relating seemingly unrelated things in unexpected ways. The second point is that **you need to listen to your creative voice**. For better or for worse the digital age has brought many quality of life improvements, but we have payed the price with our attention (and personal data). We are wired for prioritizing instant gratification. This has become common knowledge by all the companies that are constantly bombarding us with all kinds of stimuli. For every stimulus we react to, we silence our creative voice. Do this long enough and you can completely forget it is there at all.
 
 <img src="/files/nature.jpg" style="display:block; padding:1em 0;"/>
 
@@ -34,7 +34,7 @@ After making these changes to my lifestyle, I was starting to generate more idea
 
 <img src="/files/notebook.jpg" width="448px" style="display:block; padding:1em 0;"/>
 
-My partner played an important role in my search for creativity. She is a very creative person, and she helped me become more open minded. An important lesson I've learned from her is that you really have to pay attention to the world around you, otherwise you'll miss a lot of interesting things. It's not enough to just look, you have to watch.
+My partner played an important role in my search for creativity. She is naturally a very creative person, and she helped me become more open minded. An important lesson I've learned from her is that you really have to pay attention to the world around you, otherwise you'll miss a lot of interesting things. It's not enough to just look, you have to watch. She also gave me the notebook you see above as a gift!
 
 # My first game
 
@@ -42,9 +42,11 @@ Having had an idea for a game, I first prototyped my ideas as quickly as I could
 
 <img src="/files/vectron_prototype.png" width="448px" style="display:block; padding:1em 0;"/>
 
-Having worked out the basic gameplay, I made some mood boards to help me determine the visual style I'd ilke to develop. In the end I wanted my game to have a visual style similar to the Vectrex. This led me to doing some research on how the Vectrex was programmed, and how the beam in a CRT monitor works and interacts with the phosphors. Then it was just a matter of time before I discovered the work of [Jerobeam Fenderson](https://www.youtube.com/user/jerobeamfenderson1), who is making music that looks amazing when displayed on an XY oscillator. I thus decided to base the design of my game around this concept of the sound driving the graphics of the game and vice-versa.
+Having worked out the basic gameplay, I made some mood boards to help me determine the visual style I'd like to develop. In the end I wanted my game to have a visual style similar to the arcade game, [Tempest](https://en.wikipedia.org/wiki/Tempest_(video_game)), or the [Vectrex](https://en.wikipedia.org/wiki/Vectrex). This led me to doing some research on how the [Tempest was programmed](http://www.kfu.com/~nsayer/games/tempest.html), and how the beam in a CRT monitor works and interacts with the phosphors. Then, it was just a matter of time before I discovered the work of [Jerobeam Fenderson](https://www.youtube.com/user/jerobeamfenderson1), who is making music that looks amazing when displayed on an XY oscilloscope. I thus decided to base the design of my game around this concept of the sound driving the graphics of the game and vice-versa.
 
 <img src="/files/vectron.png" width="448px" style="display:block; padding:1em 0;"/>
 
-The game is far from finished, but I have enjoyed the journey so far very much. It led me to self-exploration, and gaining a better understanding of what creativity is. It also became clear to me that I really enjoy the research part of designing a game, becoming an "expert" in a small topic, as well as contemplating the various design problems and coming up with satisfactory solutions to these problems.
+The game is slowly coming along given my limited free time, especially with my baby daughter under way. Although it is far from finished, I have really enjoyed the journey thus far. It has led me to self-exploration, and getting a better understanding of creativity, and of all the different ways it can be sparked. It also made me realize how much I enjoy the research part of designing a game; in the beginning you only have a vague idea of how the game will look, feel, and play like -- it's an uneasy feeling. But it is by exploring the possibilities and becoming an "expert" in a very special, narrow set of topics, that that concept of the game you had is actualized, as a mirror of that exploration. In a sense, a game is a way of transferring that accumulated knowledge in a very unique way. Not through words, nor pictures, but through play.
+
+
 
