@@ -1,5 +1,5 @@
 <!--
-.. title: How coming up with an idea for my first game helped me discover how to be more creative
+.. title: Conceiving my first game made me find out how to be more creative
 .. slug: in-search-for-creativity
 .. date: 2019-06-28 21:00:58 UTC+02:00
 .. tags: 
