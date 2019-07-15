@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Rust vs C++ - Implementing a Neural Network | NICK TASIOS</title>
+<link href="../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/rust-vs-c%2B%2B-implementing-a-neural-network.html">
+<!--[if lt IE 9]><script src="../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="in-search-for-creativity.html" title="Conceiving my first game made me find out how to be more creative" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Rust vs C++ - Implementing a Neural Network">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/rust-vs-c%2B%2B-implementing-a-neural-network.html">
+<meta property="og:description" content="I first learned Rust back in 2014, before it was stable. Rust is definitely a very interesting language so I have decided to revisit it by programming a simple neural network. For comparison, I also i">
+<meta property="og:image" content="http://www.nicktasios.nl/files/cpprust.svg">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2019-07-06T19:18:48+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href=".">Blog</a></li>
+                <li><a href="../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="rust-vs-c%2B%2B-implementing-a-neural-network.html" class="u-url">Rust vs C++ - Implementing a Neural Network</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="rust-vs-c%2B%2B-implementing-a-neural-network.html" rel="bookmark"><time class="published dt-published" datetime="2019-07-06T19:18:48+02:00" itemprop="datePublished" title="2019-07-06 19:18">2019-07-06 19:18</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>I first learned Rust back in 2014, before it was stable. Rust is definitely a very interesting language so I have decided to revisit it by programming a simple neural network. For comparison, I also implemented the network in C++, the language I'm looking to replace.
+<!-- TEASER_END --></p>
+<p><img src="../files/cpprust.svg" width="60%" style="display:block; padding:1em 0; margin: auto;"></p>
+<p>I like learning programming languages that use constructs or paradigms that are fundamentally different from what I have seen before. Rust was one such language when I first learned programming in it back in 2014. Rust is a multi-paradigm language. It features an interesting, and in my opinion superior, take on object oriented programming with its trait system and the syntactic separation of data and methods, as well as functional language features, which are starting to become more popular in other languages too. One of Rust's defining features is its memory management model, which uses a very sophisticated <em>borrow checker</em> that manages lifetimes and ownership. Memory safety is central to Rust and it achieves this without using garbage collection.</p>
+<p>What attracted me to Rust the most was not its promise of memory safety, although the borrow checker was certainly interesting, but its functional programming features, such as <a href="https://doc.rust-lang.org/book/ch06-00-enums.html">enums</a> and <a href="https://doc.rust-lang.org/book/ch18-00-patterns.html">pattern matching</a>, along with the amazing package manager, cargo, that comes with the default Rust installation, with the promise of no compromise in performance.</p>
+<p>Although Rust stable was released in May 15 2015, I didn't program in Rust anymore because I was mainly interested in high performance, low-level programming and Rust was still not very close to the performance I was getting in C++ and it didn't support SIMD in stable until April 2018. There were also other small annoyances, like <a href="https://github.com/rust-lang/rust/issues/18878">explicitly having to cast in cases where there is no harm in implicitly casting</a>, but most of them just take some time getting used to. On the other hand, although I have been programming in C++ for quite some time now, it never felt right -- I actually enjoy programming in plain C more. Its object-oriented programming model has been the source of a lot of controversy and confusion, and there is way to much flexibility in the language making it easy to get lost in implementation details. Recent revisions of the language by the standard committee have added new, modern features, but have at the same time increased the complexity of the language with features such as rvalue references and template explosion (I suggested you watch <a href="https://www.youtube.com/watch?v=PNRju6_yn3o">this</a> to get an idea of the madness), and increased the barrier to entry for beginners.</p>
+<p>Given the current state of C++ is probably not going to improve, I have an itch that remains to be scratched. After being out of touch with Rust for over 5 years, I have basically forgotten most of the syntax, so I had a quick refresher using the fantastic <a href="https://doc.rust-lang.org/book/">Rust book</a>.</p>
+<p>For the implementation of the neural network I followed the first two chapters of <a href="http://neuralnetworksanddeeplearning.com/index.html">this</a> book. I will not cover any theory behind neural networks, so if you'd like to learn more please read it. I started with the Rust implementation so that I could learn more by having to think about how to solve problems. The niceties of Rust come into play from the very start of the project. Cargo allows quickly starting up a new project using <code>cargo new</code> and handles creating a directory tree, creating a <a href="https://doc.rust-lang.org/cargo/reference/manifest.html">manifest file</a> and a main file, and initializing a new git repository. When learning a new language, there is a lot of head scratching involved in the beginning, and that's especially so with Rust where you have to fight the borrow checker until you get used to the fact that you cannot just pass around variables like in other languages, but you also have to declare your intentions. Another minor annoyance is that because a lot of the functionality on types is built using traits, it's difficult for a newcomer to browse through the <a href="https://doc.rust-lang.org/std/">API reference</a>, and easily find all the functionality supported by a certain type; you have to look at the traits that are implemented and you need to know what each trait provides.</p>
+<h2>Parsing the MNIST database</h2>
+<p>The first thing I programmed was a parser for the binary format of the <a href="http://yann.lecun.com/exdb/mnist/">MNIST database</a>. The database is conveniently separated into a test and a training dataset, and each set contains an images file and a labels file. The file formats are pretty straightforward; we need to just read some bytes in, and reverse the order of bytes since the file are stored in big endian. Here is my implementation of the function for reading the labels file,</p>
+<pre class="code literal-block"><span></span><span class="k">fn</span> <span class="nf">read_labels</span><span class="o">&lt;</span><span class="n">P</span>: <span class="nb">AsRef</span><span class="o">&lt;</span><span class="n">Path</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="n">path</span>: <span class="nc">P</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">std</span>::<span class="n">io</span>::<span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;&gt;</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">fs_labels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span>::<span class="n">fs</span>::<span class="n">File</span>::<span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">magic_number</span>: <span class="kt">u32</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">num_items</span>:    <span class="kt">u32</span> <span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">unsafe</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">u32_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span>::<span class="n">slice</span>::<span class="n">from_raw_parts_mut</span><span class="p">(</span><span class="w"></span>
+<span class="w">            </span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">magic_number</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">mut</span><span class="w"> </span><span class="kt">u32</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">mut</span><span class="w"> </span><span class="kt">u8</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="w"></span>
+<span class="w">        </span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">fs_labels</span><span class="p">.</span><span class="n">read_exact</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">u32_bytes</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">u32_bytes</span><span class="p">.</span><span class="n">reverse</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">        </span><span class="n">assert</span><span class="o">!</span><span class="p">(</span><span class="n">magic_number</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mh">0x801</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">u32_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span>::<span class="n">slice</span>::<span class="n">from_raw_parts_mut</span><span class="p">(</span><span class="w"></span>
+<span class="w">            </span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">num_items</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">mut</span><span class="w"> </span><span class="kt">u32</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">mut</span><span class="w"> </span><span class="kt">u8</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="w"></span>
+<span class="w">        </span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">fs_labels</span><span class="p">.</span><span class="n">read_exact</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">u32_bytes</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">u32_bytes</span><span class="p">.</span><span class="n">reverse</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">labels</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Vec</span>::<span class="n">new</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="n">fs_labels</span><span class="p">.</span><span class="n">read_to_end</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">labels</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">assert</span><span class="o">!</span><span class="p">(</span><span class="n">labels</span><span class="p">.</span><span class="n">len</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">num_items</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">usize</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre>
+
+
+<p>Let's start with the function declaration,</p>
+<pre class="code literal-block"><span></span><span class="k">fn</span> <span class="nf">read_labels</span><span class="o">&lt;</span><span class="n">P</span>: <span class="nb">AsRef</span><span class="o">&lt;</span><span class="n">Path</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="n">path</span>: <span class="nc">P</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">std</span>::<span class="n">io</span>::<span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">u8</span><span class="o">&gt;&gt;</span><span class="w"></span>
+</pre>
+
+
+<p>Here we already see the use of a generic, let me explain what this does. The generic is <a href="https://doc.rust-lang.org/rust-by-example/generics/bounds.html">bounded</a> with the trait <code>AsRef&lt;Path&gt;</code>. When a type, <code>T</code>, implements the trait <a href="https://doc.rust-lang.org/std/convert/trait.AsRef.html"><code>AsRef&lt;U&gt;</code></a>, it allows for cheap "implicit" casting from one reference type to the other. Rust is very strict with allowing implicit conversions, but the traits in the <a href="https://doc.rust-lang.org/std/convert/">std::convert</a> crate can be used as bounds on generics, allowing for implicit conversion. In this case, any type that implements the <code>AsRef&lt;Path&gt;</code>, can be passed as an argument to the function <code>read_labels</code>. Conveniently, the Rust API reference has an <a href="https://doc.rust-lang.org/std/convert/trait.AsRef.html#implementors">'Implementors'</a> section for each trait, which allows us to see which types implement this specific trait. In the case of this simple function, the addition of the generic is overkill, but it's instructive.</p>
+<p>The first step in parsing the file is to open the file. In Rust, a file can be opened using the <a href="https://doc.rust-lang.org/std/fs/struct.File.html">std::fs::File</a> struct. The open function takes a <code>Path</code> and returns an <a href="https://doc.rust-lang.org/std/io/type.Result.html"><code>std::io::Result&lt;File&gt;</code></a>. This is similar to the <a href="https://en.wikipedia.org/wiki/Monad_(functional_programming)#An_example:_Maybe">Maybe Monad</a> in Haskell and other functional languages. In Rust, one usually checks if the result is OK, and then unwraps the result (File), or returns the error attached to the <code>Result</code> struct. Rust included a convenient <a href="https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html?highlight=question,mark#propagating-errors">question mark operator</a> as a shortcut. This is the reason why the return type of our function is wrapped by a <code>std::io::Result</code>.</p>
+<p>Continuing to the heart of the function, the reading of the data, we see that reading binary data in Rust is not that straightforward. We first need to create a slice to pass to the file reading function. Fortunately, you can create a slice from a pointer. Here I have to cast twice,</p>
+<pre class="code literal-block"><span></span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">magic_number</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">mut</span><span class="w"> </span><span class="kt">u32</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">mut</span><span class="w"> </span><span class="kt">u8</span><span class="w"></span>
+</pre>
+
+
+<p>But it would probably be more readable to write,</p>
+<pre class="code literal-block"><span></span><span class="n">std</span>::<span class="n">mem</span>::<span class="n">transmute</span>::<span class="o">&lt;&amp;</span><span class="k">mut</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="k">mut</span><span class="w"> </span><span class="kt">u8</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">magic_number</span><span class="p">)</span><span class="w"></span>
+</pre>
+
+
+<p>but I chose the former because it was shorter. At least we can use the methods implemented for <code>slice</code> to easily reverse the bytes. In a endian-independent implementation, we would extract the correct value like <a href="https://commandcenter.blogspot.com/2012/04/byte-order-fallacy.html">here</a>. The rest of the function is quite trivial.</p>
+<p>We already see that doing low-level stuff in Rust is a bit more challenging. For comparison, here is the C++ implementation, which is endian-independent,</p>
+<pre class="code literal-block"><span></span><span class="k">static</span> <span class="kt">uint32_t</span> <span class="nf">be32_to_cpu</span><span class="p">(</span><span class="kt">uint32_t</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">uint32_t</span> <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">((</span><span class="kt">uint32_t</span><span class="p">)</span> <span class="p">((</span><span class="kt">uint8_t</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">x</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span><span class="p">)</span>  <span class="o">|</span>
+        <span class="p">((</span><span class="kt">uint32_t</span><span class="p">)</span> <span class="p">((</span><span class="kt">uint8_t</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">x</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">8</span><span class="p">)</span>  <span class="o">|</span>
+        <span class="p">((</span><span class="kt">uint32_t</span><span class="p">)</span> <span class="p">((</span><span class="kt">uint8_t</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">x</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">16</span><span class="p">)</span> <span class="o">|</span>
+        <span class="p">((</span><span class="kt">uint32_t</span><span class="p">)</span> <span class="p">((</span><span class="kt">uint8_t</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;&lt;</span> <span class="mi">24</span><span class="p">)</span>
+    <span class="p">);</span>
+    <span class="k">return</span> <span class="o">*</span><span class="p">(</span><span class="kt">uint32_t</span><span class="o">*</span><span class="p">)(</span><span class="o">&amp;</span><span class="n">ret</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">read_labels</span><span class="p">(</span>
+    <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filepath</span><span class="p">,</span>
+    <span class="kt">uint8_t</span><span class="o">**</span> <span class="n">label_data</span><span class="p">,</span> <span class="kt">size_t</span><span class="o">*</span> <span class="n">num_labels</span>
+<span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">FILE</span><span class="o">*</span> <span class="n">fp</span> <span class="o">=</span> <span class="n">fopen</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s">"rb"</span><span class="p">);</span>
+
+    <span class="kt">uint32_t</span> <span class="n">magic_number</span><span class="p">,</span> <span class="n">num_items</span><span class="p">;</span>
+
+    <span class="n">fread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">magic_number</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fp</span><span class="p">);</span>
+    <span class="n">magic_number</span> <span class="o">=</span> <span class="n">be32_to_cpu</span><span class="p">(</span><span class="n">magic_number</span><span class="p">);</span>
+    <span class="n">assert</span><span class="p">(</span><span class="n">magic_number</span> <span class="o">==</span> <span class="mh">0x801</span><span class="p">);</span>
+
+    <span class="n">fread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">num_items</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fp</span><span class="p">);</span>
+    <span class="n">num_items</span> <span class="o">=</span> <span class="n">be32_to_cpu</span><span class="p">(</span><span class="n">num_items</span><span class="p">);</span>
+
+    <span class="o">*</span><span class="n">label_data</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">uint8_t</span><span class="p">[</span><span class="n">num_items</span><span class="p">];</span>
+    <span class="n">fread</span><span class="p">(</span><span class="o">*</span><span class="n">label_data</span><span class="p">,</span> <span class="n">num_items</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fp</span><span class="p">);</span>
+
+    <span class="n">fclose</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+
+    <span class="o">*</span><span class="n">num_labels</span> <span class="o">=</span> <span class="n">num_items</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+
+
+<p>As you can see, the C++ implementation of <code>read_labels</code> is less terse and shorter.</p>
+<h2>Naive neural network implementation</h2>
+<p>For the neural network, I defined a <code>struct</code> for holding some important data for a layer,</p>
+<pre class="code literal-block"><span></span><span class="k">struct</span> <span class="nc">NnLinearLayer</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">input_size</span>:  <span class="kt">usize</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">output_size</span>: <span class="kt">usize</span><span class="p">,</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">weights</span>: <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">f64</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">biases</span>:  <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">f64</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre>
+
+
+<p>namely the biases and the weights, defined as a contiguous vector.
+I also implemented two functions, one for constructing a layer, and one for processing inputs,</p>
+<pre class="code literal-block"><span></span><span class="k">impl</span><span class="w"> </span><span class="n">NnLinearLayer</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">fn</span> <span class="nf">new</span><span class="p">(</span><span class="n">input_size</span>: <span class="kt">usize</span><span class="p">,</span><span class="w"> </span><span class="n">output_size</span>: <span class="kt">usize</span><span class="p">)</span><span class="w"> </span>-&gt; <span class="nc">NnLinearLayer</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">weights</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thread_rng</span><span class="p">().</span><span class="n">sample_iter</span><span class="p">(</span><span class="o">&amp;</span><span class="n">StandardNormal</span><span class="p">)</span><span class="w"></span>
+<span class="w">                        </span><span class="p">.</span><span class="n">take</span><span class="p">(</span><span class="n">input_size</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">output_size</span><span class="p">).</span><span class="n">collect</span><span class="p">();</span><span class="w"></span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">biases</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">thread_rng</span><span class="p">().</span><span class="n">sample_iter</span><span class="p">(</span><span class="o">&amp;</span><span class="n">StandardNormal</span><span class="p">)</span><span class="w"></span>
+<span class="w">                        </span><span class="p">.</span><span class="n">take</span><span class="p">(</span><span class="n">output_size</span><span class="p">).</span><span class="n">collect</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">        </span><span class="n">NnLinearLayer</span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">input_size</span>: <span class="nc">input_size</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="n">output_size</span>: <span class="nc">output_size</span><span class="p">,</span><span class="w"></span>
+<span class="w">            </span><span class="n">weights</span>: <span class="nc">weights</span><span class="p">,</span><span class="w"> </span><span class="n">biases</span>: <span class="nc">biases</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">fn</span> <span class="nf">process_input</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span>: <span class="kp">&amp;</span><span class="p">[</span><span class="kt">f64</span><span class="p">])</span><span class="w"> </span>-&gt; <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">f64</span><span class="o">&gt;</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">assert</span><span class="o">!</span><span class="p">(</span><span class="n">input</span><span class="p">.</span><span class="n">len</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">biases</span><span class="p">.</span><span class="n">clone</span><span class="p">();</span><span class="w"></span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">0</span><span class="p">..</span><span class="bp">self</span><span class="p">.</span><span class="n">output_size</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">0</span><span class="p">..</span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="w"></span>
+<span class="w">            </span><span class="p">{</span><span class="w"></span>
+<span class="w">                </span><span class="n">output</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"></span>
+<span class="w">                    </span><span class="n">input</span><span class="p">[</span><span class="n">j</span><span class="p">];</span><span class="w"></span>
+<span class="w">            </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="n">output</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre>
+
+
+<p><code>process_input</code> simply does a matrix multiply of the input with the weights matrix, adding the bias. The constructor initializes the weights and biases with random numbers taken from the normal distribution. The random number generation crate is nice and quite easy to use. The implementation in C++ is very similar, with the only annoyance that you have to statically initialize the random engine. In Rust this is done for you by the crate.</p>
+<p>The rest of the code, is mostly numerical calculations and the differences in implementations between C++ and Rust are minimal. I would say that my biggest annoyances in Rust are the fact that you are not allowed to have uninitialized memory in non-unsafe blocks. The functional nature of Rust's types also often promotes doing things in separate loops, although in a procedural implementation you would fuse the loops.</p>
+<p>I trained a neural network with 23880 parameters for 30 epochs in batches of 10,</p>
+<pre class="code literal-block"><span></span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">layers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vec</span><span class="o">!</span><span class="p">[</span><span class="w"></span>
+<span class="w">    </span><span class="n">NnLinearLayer</span>::<span class="n">new</span><span class="p">(</span><span class="mi">784</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="p">),</span><span class="w"></span>
+<span class="w">    </span><span class="n">NnLinearLayer</span>::<span class="n">new</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">),</span><span class="w"></span>
+<span class="p">];</span><span class="w"></span>
+</pre>
+
+
+<p>and the average training time per epoch on my MacBook Pro from mid 2014 was <strong>14.742</strong> seconds while the C++ version took an average <strong>5.215</strong> seconds per epoch. Both codes were built in release mode. The C++ version was compiled with <code>-march=native</code> and the Rust one with <code>-C target-cpu=native</code>.</p>
+<p>I want to emphasize, here, that I'm <strong>not</strong> writing this blog to compare the performance between Rust and C++, so I'm not going to go down the rabbit hole, I'm sure someone can make both versions run as fast. This is more of a study of how easy it is to write low-level code in Rust and how performant it is on the first go.</p>
+<h2>Applying SIMD optimizations</h2>
+<p>As I mentioned earlier, Rust did not support SIMD in stable until recently. Also, SIMD support was implemented differently in the <a href="https://github.com/Grieverheart/dsfmt-rs/blob/master/src/mt19937.rs#L34">past</a>. With the recent support, I wanted to test out how easy it is to write SIMD code in Rust. Before I dive-in, though, I'd like to mention that before implementing the SIMD optimizations, I thought I'd give a crate called <a href="https://crates.io/crates/ndarray">ndarray</a> a try. As mentioned at the crate's page, <code>ndarray</code> implements an n-dimensional container for general elements and for numerics. <code>ndarray</code> can optionally use BLAS for better performance. Even though cargo makes the installation of crates very easy, it was not able to install BLAS properly on the Windows machine I started programming, so I gave up on that idea. Instead, I tried using BLAS kernels from C++, but performance was actually quite poor. I think this was due to an issue related to <a href="https://github.com/xianyi/OpenBLAS/issues/532">this one</a>.</p>
+<p>So after a some failures, I decided to move on to the application of SIMD optimizations to the existing code. Vectorizing the neural network code should be straightforward as it is comprised of elementary vector operations matrix vector multiplications.</p>
+<p>To be able to use the SIMD intrinsics in Rust, I have to import them like this,</p>
+<pre class="code literal-block"><span></span><span class="k">use</span><span class="w"> </span><span class="n">std</span>::<span class="n">arch</span>::<span class="n">x86_64</span>::<span class="n">_mm256_loadu_ps</span><span class="p">;</span><span class="w"></span>
+</pre>
+
+
+<p>Using the intrinsics from within Rust is actually pretty painless. Below you see the optimization of the <code>process_input</code> function,</p>
+<pre class="code literal-block"><span></span><span class="k">fn</span> <span class="nf">process_input</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span>: <span class="kp">&amp;</span><span class="p">[</span><span class="kt">f32</span><span class="p">])</span><span class="w"> </span>-&gt; <span class="nb">Vec</span><span class="o">&lt;</span><span class="kt">f32</span><span class="o">&gt;</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">assert</span><span class="o">!</span><span class="p">(</span><span class="n">input</span><span class="p">.</span><span class="n">len</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Vec</span>::<span class="n">with_capacity</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">output_size</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">last_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">unsafe</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">output</span><span class="p">.</span><span class="n">set_len</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">output_size</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="mi">0</span><span class="p">..</span><span class="bp">self</span><span class="p">.</span><span class="n">output_size</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">acc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_mm256_setzero_ps</span><span class="p">();</span><span class="w"></span>
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="p">(</span><span class="mi">0</span><span class="p">..</span><span class="n">last_index</span><span class="p">).</span><span class="n">step_by</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="p">{</span><span class="w"></span>
+<span class="w">                </span><span class="kd">let</span><span class="w"> </span><span class="n">sse_w</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">_mm256_loadu_ps</span><span class="p">(</span><span class="w"></span>
+<span class="w">                    </span><span class="bp">self</span><span class="p">.</span><span class="n">weights</span><span class="p">.</span><span class="n">as_ptr</span><span class="p">().</span><span class="n">offset</span><span class="p">(</span><span class="w"></span>
+<span class="w">                        </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">isize</span><span class="w"></span>
+<span class="w">                    </span><span class="p">)</span><span class="w"></span>
+<span class="w">                </span><span class="p">);</span><span class="w"></span>
+<span class="w">                </span><span class="kd">let</span><span class="w"> </span><span class="n">sse_in</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_mm256_loadu_ps</span><span class="p">(</span><span class="w"></span>
+<span class="w">                    </span><span class="n">input</span><span class="p">.</span><span class="n">as_ptr</span><span class="p">().</span><span class="n">offset</span><span class="p">(</span><span class="n">j</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">isize</span><span class="p">)</span><span class="w"></span>
+<span class="w">                </span><span class="p">);</span><span class="w"></span>
+<span class="w">                </span><span class="n">acc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_mm256_fmadd_ps</span><span class="p">(</span><span class="n">sse_w</span><span class="p">,</span><span class="w"> </span><span class="n">sse_in</span><span class="p">,</span><span class="w"> </span><span class="n">acc</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">temp_sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_mm_add_ps</span><span class="p">(</span><span class="w"></span>
+<span class="w">                </span><span class="n">_mm256_extractf128_ps</span><span class="p">(</span><span class="n">acc</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">),</span><span class="w"></span>
+<span class="w">                </span><span class="n">_mm256_castps256_ps128</span><span class="p">(</span><span class="n">acc</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">temp_sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_mm_add_ps</span><span class="p">(</span><span class="w"></span>
+<span class="w">                </span><span class="n">temp_sum</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="n">_mm_movehl_ps</span><span class="p">(</span><span class="n">temp_sum</span><span class="p">,</span><span class="w"> </span><span class="n">temp_sum</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">temp_sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_mm_add_ss</span><span class="p">(</span><span class="w"></span>
+<span class="w">                </span><span class="n">temp_sum</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="n">_mm_shuffle_ps</span><span class="p">(</span><span class="n">temp_sum</span><span class="p">,</span><span class="w"> </span><span class="n">temp_sum</span><span class="p">,</span><span class="w"> </span><span class="mh">0x55</span><span class="p">)</span><span class="w"></span>
+<span class="w">            </span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_mm_cvtss_f32</span><span class="p">(</span><span class="n">temp_sum</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">            </span><span class="n">output</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">biases</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">sum</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">last_index</span><span class="p">..</span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="w"></span>
+<span class="w">            </span><span class="p">{</span><span class="w"></span>
+<span class="w">                </span><span class="n">output</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"></span>
+<span class="w">                    </span><span class="bp">self</span><span class="p">.</span><span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">input_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">j</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">input</span><span class="p">[</span><span class="n">j</span><span class="p">];</span><span class="w"></span>
+<span class="w">            </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">output</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre>
+
+
+<p>Note that I change the type being processed to <code>f32</code> to allow for more vector operations. In this optimization, I naively split the loop into batches of 8, and perform the last remaining operations without using the intrinsics. A better idea would perhaps be to pad the data. Again, the C++ version is basically identical, but you can compare the two, <a href="https://github.com/Grieverheart/neural_network">here</a>.</p>
+<p>With these optimizations applied to all numerical work, I saw big improvements in both implementations. The C++ version took an average of <strong>1.155</strong> seconds per epoch, a <code>4.5x</code> speedup -- there is still room for improvement, but that's not the goal of this blog post. The Rust version ran at an average <strong>1.769</strong> per epoch, that's a 8.3x speedup, but note that I also implemented some other optimizations, like preallocating the required space for the vectors that are used in the calculations. The Rust version did shorten the performance gap, with it being now only 53% slower.</p>
+<h2>Conclusions</h2>
+<p>Rust feels like a really well designed language and not a mere superset of a language (although Mozilla made one big mistake, and that was naming dynamically sized arrays 'vectors'!). Although features have been borrowed from functional languages, they have been implemented in a way that really makes sense and do not feel out of place. The package manager is a truly amazing tool to have and promotes the sharing of code within the Rust community. Its borrow checker promotes moving variables instead of creating unnecessary (expensive) copies as is often the case in C++. Rust's documentation is also amazing, although it can be difficult to navigate for newcomers.</p>
+<p>My experience with Rust in developing a neural network from scratch, is that low-level code in Rust is terse, and getting good performance is not that straightforward. Especially in a naive first implementation, I was able to get nearly 3 times better performance from C++ -- this was my experience 5 years ago too. On the other hand, the compiler errors are very helpful, and I did benefit from the array bounds checking when first developing the neural network. Clang and GCC do offer a bounds checking option nowadays via the <code>-fsanitize=address</code> compiler flag -- I feel this is a better option as to turn off bounds checking in Rust you have to use unchecked accesses, which, are unsafe, and thus need to be called from within an unsafe block, and are once again terser. I understand the motivation, and I like the idea of making only a certain part of the code unsafe, but I think it would help if the syntax was less terse and constrained, within these blocks.</p>
+<p>From my current experimentation, Rust has not given me any compelling reasons to switch to it as my main language of choice. I really want to like Rust, I truly do. But I feel I might not be the target audience. Most of the time I don't need to write safe code. I think most people don't need to write safe code all the time. Rust is by default safe, making it hard to program most of the time so that certain bugs can be minimized. The question of course then is, does the effort spent writing safe code all the time outweigh the hypothetical reduction in bugs? Instead, with Moore's law slowly coming to an end, I think we need to design a system's programming language's that's fun to use, and more accessible to new programmers.</p>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="in-search-for-creativity.html" rel="prev" title="Conceiving my first game made me find out how to be more creative">Previous post</a>
+            </li>
+        </ul></nav></aside></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
