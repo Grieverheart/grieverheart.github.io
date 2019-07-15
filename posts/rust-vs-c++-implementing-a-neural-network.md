@@ -3,7 +3,7 @@
 .. slug: rust-vs-c++-implementing-a-neural-network
 .. date: 2019-07-06 19:18:48 UTC+02:00
 .. tags: 
-.. previewimage: /files/cpprust.svg
+.. previewimage: /files/cpprust.png
 .. category: 
 .. link: 
 .. description: 
