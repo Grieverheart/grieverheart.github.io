@@ -34,24 +34,15 @@ fn read_labels<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<u8>>
 {
     let mut fs_labels = std::fs::File::open(path)?;
 
-    let mut magic_number: u32 = 0;
-    let mut num_items:    u32 = 0;
-    unsafe
-    {
-        let mut u32_bytes = std::slice::from_raw_parts_mut(
-            &mut magic_number as *mut u32 as *mut u8, 4
-        );
-        fs_labels.read_exact(&mut u32_bytes)?;
-        u32_bytes.reverse();
+    let mut u32_bytes: [u8; 4] = [0; 4];
 
-        assert!(magic_number == 0x801);
+    fs_labels.read_exact(&mut u32_bytes)?;
+    let magic_number = u32::from_be_bytes(u32_bytes);
 
-        let mut u32_bytes = std::slice::from_raw_parts_mut(
-            &mut num_items as *mut u32 as *mut u8, 4
-        );
-        fs_labels.read_exact(&mut u32_bytes)?;
-        u32_bytes.reverse();
-    }
+    assert!(magic_number == 0x801);
+
+    fs_labels.read_exact(&mut u32_bytes)?;
+    let mut num_items = u32::from_be_bytes(u32_bytes);
 
     let mut labels: Vec<u8> = Vec::new();
     fs_labels.read_to_end(&mut labels)?;
@@ -65,7 +56,7 @@ Let's start with the function declaration,
 ``` Rust
 fn read_labels<P: AsRef<Path>>(path: P) -> std::io::Result<Vec<u8>>
 ```
-Here we already see the use of a generic, let me explain what this does. The generic is [bounded](https://doc.rust-lang.org/rust-by-example/generics/bounds.html) with the trait `AsRef<Path>`. When a type, `T`, implements the trait [`AsRef<U>`](https://doc.rust-lang.org/std/convert/trait.AsRef.html), it allows for cheap "implicit" casting from one reference type to the other. Rust is very strict with allowing implicit conversions, but the traits in the [std::convert](https://doc.rust-lang.org/std/convert/) crate can be used as bounds on generics, allowing for implicit conversion. In this case, any type that implements the `AsRef<Path>`, can be passed as an argument to the function `read_labels`. Conveniently, the Rust API reference has an ['Implementors'](https://doc.rust-lang.org/std/convert/trait.AsRef.html#implementors) section for each trait, which allows us to see which types implement this specific trait. In the case of this simple function, the addition of the generic is overkill, but it's instructive.
+Here we already see the use of a generic, let me explain what this does. The generic is [bounded](https://doc.rust-lang.org/rust-by-example/generics/bounds.html) with the trait `AsRef<Path>`. When a type, `T`, implements the trait [`AsRef<U>`](https://doc.rust-lang.org/std/convert/trait.AsRef.html), it allows for cheap "implicit" casting from one reference type to the other. Rust is very strict with allowing implicit conversions, but the traits in the [std::convert](https://doc.rust-lang.org/std/convert/) crate can be used as bounds on generics, allowing for implicit conversion. In this case, any type that implements the `AsRef<Path>`, can be passed as an argument to the function `read_labels`. Conveniently, the Rust API reference has an ['Implementors'](https://doc.rust-lang.org/std/convert/trait.AsRef.html#implementors) section for each trait, which allows us to see which types implement this specific trait. In the case of this simple function, the addition of the generic is overkill, but it's instructive. Note that at first I implemented this function using an unsafe block to cast a `&mut u32` to a `*mut u8` to read directly the bytes into the variable, but as a commenter pointed out on [reddit](https://www.reddit.com/r/programming/comments/cdp77g/rust_vs_c_implementing_a_neural_network/etw09nv?utm_source=share&utm_medium=web2x), `u32::from_be_bytes` can be used instead, avoiding the `unsafe` block.
 
 The first step in parsing the file is to open the file. In Rust, a file can be opened using the [std::fs::File](https://doc.rust-lang.org/std/fs/struct.File.html) struct. The open function takes a `Path` and returns an [`std::io::Result<File>`](https://doc.rust-lang.org/std/io/type.Result.html). This is similar to the [Maybe Monad](https://en.wikipedia.org/wiki/Monad_(functional_programming)#An_example:_Maybe) in Haskell and other functional languages. In Rust, one usually checks if the result is OK, and then unwraps the result (File), or returns the error attached to the `Result` struct. Rust included a convenient [question mark operator](https://doc.rust-lang.org/book/ch09-02-recoverable-errors-with-result.html?highlight=question,mark#propagating-errors) as a shortcut. This is the reason why the return type of our function is wrapped by a `std::io::Result`.
 
@@ -137,9 +128,10 @@ impl NnLinearLayer
 {
     fn new(input_size: usize, output_size: usize) -> NnLinearLayer
     {
-        let weights = thread_rng().sample_iter(&StandardNormal)
+        let mut rng = thread_rng();
+        let weights = rng.sample_iter(&StandardNormal)
                         .take(input_size * output_size).collect();
-        let biases  = thread_rng().sample_iter(&StandardNormal)
+        let biases  = rng.sample_iter(&StandardNormal)
                         .take(output_size).collect();
 
         NnLinearLayer{
