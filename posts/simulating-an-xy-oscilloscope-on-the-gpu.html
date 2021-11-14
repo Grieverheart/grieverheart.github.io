@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Simulating an XY oscilloscope on the GPU | NICK TASIOS</title>
+<link href="../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/simulating-an-xy-oscilloscope-on-the-gpu.html">
+<!--[if lt IE 9]><script src="../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="rust-vs-c%2B%2B-implementing-a-neural-network.html" title="Rust vs C++ - Implementing a Neural Network" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Simulating an XY oscilloscope on the GPU">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/simulating-an-xy-oscilloscope-on-the-gpu.html">
+<meta property="og:description" content="It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it ">
+<meta property="og:image" content="http://www.nicktasios.nl/files/vectron_start_screen.png">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2021-11-05T23:39:37+01:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href=".">Blog</a></li>
+                <li><a href="../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="#" class="u-url">Simulating an XY oscilloscope on the GPU</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="#" rel="bookmark"><time class="published dt-published" datetime="2021-11-05T23:39:37+01:00" itemprop="datePublished" title="2021-11-05 23:39">2021-11-05 23:39</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on <a href="https://studiostok.itch.io/vectron">itch.io</a>. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron.</p>
+<!-- TEASER_END -->
+
+<h2>Vectron's graphics</h2>
+<p><img src="../files/vectron_start_screen.png" width="448px" style="display:block; padding:1em 0;"></p>
+<p>After I worked out the basic gameplay elements of Vectron, I made some mood boards to help me determine the visual style I'd like to develop. In the end I wanted my game to have a visual style similar to the arcade game, <a href="https://en.wikipedia.org/wiki/Tempest_(video_game)">Tempest</a>, or the <a href="https://en.wikipedia.org/wiki/Vectrex">Vectrex</a> and I was also greatly inspired by <a href="https://www.youtube.com/watch?v=GIdiHh6mW58">video of Quake being played on an oscilloscope</a>. This led me to doing some research on how the <a href="http://www.kfu.com/~nsayer/games/tempest.html">Tempest was programmed</a>, and how the beam in a CRT monitor works and interacts with the phosphors. Then, it was just a matter of time before I discovered the work of <a href="https://www.youtube.com/user/jerobeamfenderson1">Jerobeam Fenderson</a>, who is making music that looks amazing when displayed on an XY oscilloscope. I thus decided to base the design of my game around the concept of sound driving the graphics of the game and vice-versa.</p>
+<h2>Oscilloscope basics</h2>
+<p><img src="../files/Oscilloscope_sine_square.jpg" style="display:block; padding:1em 0;"></p>
+<p>An <a href="https://en.wikipedia.org/wiki/Oscilloscope">oscilloscope</a> is a device that receives electrical signals as input and visualizes their variation over time on a screen. Modern oscilloscopes use an LCD display, but older ones used a <a href="https://en.wikipedia.org/wiki/Cathode-ray_tube">cathode ray tube</a>(CRT), similar to older TVs. Typically they operate by periodically horizontally sweeping the CRT beam across the screen, while the voltage of the input signal determines the vertical position of the beam. The sweep frequency as well as the sensitivity of the vertical deflection to the voltage can be adjusted allowing it to display a multitude of signals. As a result of the phosphor layer on CRT, the beam leaves a glowing trail allowing the image to persist for a certain period between frequency sweeps.</p>
+<p>Most oscilloscopes have a second input channel, Y, which can be used to control the horizontal deflection using an electrical signal, similar to how the X signal controls the vertical deflection. In this mode, time is not explicitly visualized, but only implicitly through the motion of the beam. In this mode, we can use the oscilloscope as a fancy, really fast Etch A Sketch. Let's first provide a constant 0 voltage signal to the Y channel, and provide a sinusoidal voltage signal to the X channel. If we make the frequency of the signal slow enough, we should be able to see the beam move back and forth like below.
+<img src="../files/oscilloscope_x_sine.gif" style="display:block; padding:1em 0;">
+And if we pass a sinusoidal signal to the Y channel, we get the same motion in the vertical direction.
+<img src="../files/oscilloscope_y_sine.gif" style="display:block; padding:1em 0;">
+Finally, we can pass both signals, and if we make the Y signal out of face with the X signal by π/2, we get a perfect circular motion.
+<img src="../files/oscilloscope_xy_circle.gif" style="display:block; padding:1em 0;">
+As you can imagine, we can play with the signals we pass to the X and Y channels, and we literally draw anything, as long as we make the beam fast enough (by increasing the frequency of the signals) such that the phosphor on the screen doesn't have time to decay completely. Patterns formed in this way are known as <a href="https://en.wikipedia.org/wiki/Lissajous_curve">Lissajous curves</a>. In Vectron, one of the things I did was build a vocabulary of patterns including lines which can be used to build more complex patterns, such as polygons, etc.</p>
+<h2>Beam Intensity</h2>
+<p>For rendering the oscilloscope beam, I based my work off of the nice blog post at <a href="https://m1el.github.io/woscope-how/">https://m1el.github.io/woscope-how/</a>.
+The basic assumption we make to easily and efficiently draw the oscilloscope beam is that between two points, the beam moves linearly. We basically linearly interpolate its position. For a beam from \((0,0)\) to \((l,0)\), given that the intensity of the electron beam as a function of distance from its center follows a Gaussian distribution,
+\[I(d) = \frac{1}{\sigma \sqrt{2\pi}} e^{-\frac{d^2}{2\sigma^2}}\]
+the intensity of the beam at a position \(p=(p_x, p_y)\) can be calculated according to m1el's post as,
+\[F(\mathbf{p}) = \frac{1}{2l} e^{-\frac{p_y^2}{2\sigma^2}}\left[ \textrm{erf}\left(\frac{p_x}{\sigma\sqrt{2}}\right) - \textrm{erf}\left(\frac{p_x - l}{\sigma\sqrt{2}}\right)\right] \]
+This was calculated by integrating the intensity of the electron beam along its linear path. We can improve m1el's result slightly by incorporating the phosphor decay as an exponential decay factor, \(e^{-\lambda (\Delta t - t)}\), where \(\lambda\) is the phosphor decay constant, and \(\Delta t\) is the beam travel time. We further extend the integration to be over a piecewise linear path with \(N\) linear segments and fix the time for each segment to \(\delta t = \Delta t / N\). Then, by integrating the amount of light that arrives at the point \(\mathbf{p}\), over nth segment, we get,
+\[ F(\mathbf{p}) = \frac{e^{-\left(\lambda N \delta + \frac{p_y^2}{2 \sigma^2}\right)}}{\sigma l \sqrt{2\pi}}  \int_{n \delta t}^{(n+1)\delta t} dt e^{\lambda t} \exp\left[-\frac{(p_x - l (t - n \delta t)/\delta t)^2}{2\sigma^2}\right] \]
+which after feeding it to Wolfram Alpha, we get the following relatively complicated expression,
+\[
+\begin{split}
+    F(\mathbf{p}) = &amp;\frac{\delta t}{2l} \exp\left[ \left(\frac{\delta t \lambda \sigma}{l\sqrt{2}}\right)^2 - \delta t \lambda (N - n - \frac{p_x}{l}) - \frac{p_y^2}{2 \sigma^2}\right]\\
+                    &amp;\left[ \textrm{erf}\left(\frac{p_x}{\sigma\sqrt{2}} + \frac{\delta t \lambda \sigma}{l\sqrt{2}} \right) - \textrm{erf}\left(\frac{p_x - l}{\sigma\sqrt{2}} + \frac{\delta t \lambda \sigma}{l\sqrt{2}}\right)\right]
+\end{split}
+\tag{1}
+\]
+As a side-note, at first I did not derive this complicated expression, but instead made an approximation by smoothly interpolating the decay factor along the beam path. If instead of interpolating the decay factor itself, we interpolate the decay factor exponent, we retrieve the following expression,
+\[
+\begin{split}
+    F(\mathbf{p}) = &amp;\frac{\delta t}{2l}  \exp\left[ -\delta t \lambda (N - n - \frac{p_x}{l}) - \frac{p_y^2}{2 \sigma^2}\right]\\
+                    &amp;\left[ \textrm{erf}\left(\frac{p_x}{\sigma\sqrt{2}}\right) - \textrm{erf}\left(\frac{p_x - l}{\sigma\sqrt{2}}\right) \right]
+\end{split}
+\]
+which is the same as the more complex expressions with
+\[
+\frac{\delta t \lambda \sigma}{l\sqrt{2}} = 0.
+\]
+In practice, this is a reasonable assumption, and setting this expression to 0, does not affect the visual appearance unless the path is really short or the beam radius is really large.</p>
+<h2>Implementation</h2>
+<p>In my implementation of the oscilloscope renderer, I draw a fixed number, N, of segments each frame. Furthermore, I use the frame time to multiply the whole frame with the exponential decay factor. I achieve this by using a <a href="https://en.wikipedia.org/wiki/Framebuffer_object">Frame Buffer Object (FBO)</a>, and alpha blending for multiplying by the decay factor. The rendering steps are then the following:</p>
+<ol>
+<li>Bind the FBO.</li>
+<li>Set the blend function to <code>glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA)</code>.</li>
+<li>Render a full screen quad with a black color and alpha set to the decay factor, \(e^{-\lambda \delta t N}\).</li>
+<li>Set the blend function to <code>glBlendFunc(GL_ONE, GL_ONE)</code>.</li>
+<li>Render beam segments.</li>
+<li>Disable alpha blending.</li>
+<li>Bind the draw buffer and draw the FBO texture to the screen (using SRGB).</li>
+</ol>
+<p>Most of the steps are really simple and you can find out how to draw a fullscreen quad on other blog posts, such as <a href="space-invaders-from-scratch-part-2.html">this one</a>. For drawing the beam segments we actually use a trick that was described in m1el's post, namely we draw quads but instead of passing the coordinates of each corner, we only pass the coordinates of the segment endpoints, and generate the quad coordinates in the vertex shader based on their vertex id.
+<img src="../files/beam_segment_quad.svg" style="display:block; padding:1em 5em;">
+The implementation of the above trick can be seen in the vertex shader:</p>
+<pre class="code literal-block"><span class="cp">#version 330</span>
+
+<span class="k">layout</span><span class="p">(</span><span class="n">location</span> <span class="o">=</span> <span class="mo">0</span><span class="p">)</span> <span class="k">in</span> <span class="kt">vec2</span> <span class="n">start</span><span class="p">;</span>
+<span class="k">layout</span><span class="p">(</span><span class="n">location</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="k">in</span> <span class="kt">vec2</span> <span class="n">end</span><span class="p">;</span>
+
+<span class="c1">// quad vertex ids</span>
+<span class="c1">// 3--2</span>
+<span class="c1">// | /|</span>
+<span class="c1">// |/ |</span>
+<span class="c1">// 0--1</span>
+
+<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_radius</span><span class="p">;</span>
+<span class="k">uniform</span> <span class="kt">vec2</span> <span class="n">aspect_ratio_correction</span><span class="p">;</span>
+
+<span class="k">flat</span> <span class="k">out</span> <span class="kt">float</span> <span class="n">path_length</span><span class="p">;</span>
+<span class="k">flat</span> <span class="k">out</span> <span class="kt">int</span> <span class="n">edge_id</span><span class="p">;</span>
+<span class="k">smooth</span> <span class="k">out</span> <span class="kt">vec2</span> <span class="n">beam_coord</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">vid</span> <span class="o">=</span> <span class="nb">gl_VertexID</span> <span class="o">%</span> <span class="mi">4</span><span class="p">;</span>
+    <span class="n">path_length</span> <span class="o">=</span> <span class="n">length</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">);</span>
+
+    <span class="kt">vec2</span> <span class="n">dir</span> <span class="o">=</span> <span class="n">beam_radius</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">path_length</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span><span class="o">?</span>
+            <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">/</span> <span class="n">path_length</span><span class="o">:</span>
+            <span class="kt">vec2</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="p">);</span>
+
+    <span class="kt">vec2</span> <span class="n">orth</span> <span class="o">=</span> <span class="kt">vec2</span><span class="p">(</span><span class="o">-</span><span class="n">dir</span><span class="p">.</span><span class="n">y</span><span class="p">,</span> <span class="n">dir</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>
+    <span class="kt">vec2</span> <span class="n">pos</span> <span class="o">=</span>
+        <span class="p">((</span><span class="n">vid</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span><span class="o">?</span> <span class="n">start</span> <span class="o">-</span> <span class="n">dir</span><span class="o">:</span> <span class="n">end</span> <span class="o">+</span> <span class="n">dir</span><span class="p">)</span> <span class="o">+</span>
+       <span class="p">((</span><span class="n">vid</span> <span class="o">==</span> <span class="mo">0</span> <span class="o">||</span> <span class="n">vid</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span><span class="o">?</span> <span class="n">orth</span><span class="o">:</span> <span class="o">-</span><span class="n">orth</span><span class="p">);</span>
+
+    <span class="n">pos</span> <span class="o">*=</span> <span class="n">aspect_ratio_correction</span><span class="p">;</span>
+
+    <span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">vid</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span><span class="o">?</span>
+            <span class="o">-</span><span class="n">beam_radius</span><span class="o">:</span>
+            <span class="n">path_length</span> <span class="o">+</span> <span class="n">beam_radius</span>
+    <span class="p">);</span>
+    <span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">vid</span> <span class="o">==</span> <span class="mo">0</span> <span class="o">||</span> <span class="n">vid</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span><span class="o">?</span>
+            <span class="n">beam_radius</span><span class="o">:</span>
+            <span class="o">-</span><span class="n">beam_radius</span>
+    <span class="p">);</span>
+
+    <span class="n">edge_id</span> <span class="o">=</span> <span class="nb">gl_VertexID</span> <span class="o">/</span> <span class="mi">4</span><span class="p">;</span>
+
+    <span class="nb">gl_Position</span> <span class="o">=</span> <span class="kt">vec4</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">);</span>
+<span class="p">}</span>
+</pre>
+<p>Note that we pass <code>beam_coord</code> to the fragment shader with the keyword <code>smooth</code> so that it is interpolated over the quad. The fragment shader is a simple implementation of expression (1):</p>
+<pre class="code literal-block"><span class="cp">#version 330</span>
+
+<span class="cp">#define SQRT2 1.4142135623730951</span>
+<span class="cp">#define SQRT2PI 2.506628274631001</span>
+
+<span class="kt">float</span> <span class="n">erf</span><span class="p">(</span><span class="kt">float</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">float</span> <span class="n">s</span> <span class="o">=</span> <span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">a</span> <span class="o">=</span> <span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.278393</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.230389</span> <span class="o">+</span> <span class="mf">0.078108</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">a</span><span class="p">))</span> <span class="o">*</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="p">;</span>
+    <span class="n">x</span> <span class="o">*=</span> <span class="n">x</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">s</span> <span class="o">-</span> <span class="n">s</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">uniform</span> <span class="kt">vec3</span> <span class="n">beam_color</span><span class="p">;</span>
+<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_radius</span><span class="p">;</span>
+<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_dt</span><span class="p">;</span>
+<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_intensity</span><span class="p">;</span>
+<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_decay_time</span><span class="p">;</span>
+<span class="k">uniform</span> <span class="kt">uint</span> <span class="n">beam_num_edges</span><span class="p">;</span>
+
+<span class="k">out</span> <span class="kt">vec4</span> <span class="n">outColor</span><span class="p">;</span>
+
+<span class="k">flat</span> <span class="k">in</span> <span class="kt">float</span> <span class="n">path_length</span><span class="p">;</span>
+<span class="k">flat</span> <span class="k">in</span> <span class="kt">int</span> <span class="n">edge_id</span><span class="p">;</span>
+<span class="k">smooth</span> <span class="k">in</span> <span class="kt">vec2</span> <span class="n">beam_coord</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">float</span> <span class="n">sigma</span> <span class="o">=</span> <span class="n">beam_radius</span> <span class="o">/</span> <span class="mf">5.0</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">total_factor</span> <span class="o">=</span> <span class="n">beam_intensity</span> <span class="o">*</span> <span class="n">beam_dt</span><span class="p">;</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">path_length</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="kt">float</span> <span class="n">f</span> <span class="o">=</span> <span class="n">beam_dt</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">/</span>
+            <span class="p">(</span><span class="n">SQRT2</span> <span class="o">*</span> <span class="n">path_length</span> <span class="o">*</span> <span class="n">beam_decay_time</span><span class="p">);</span>
+
+        <span class="n">total_factor</span> <span class="o">*=</span>
+            <span class="n">erf</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="n">SQRT2</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">))</span> <span class="o">-</span>
+            <span class="n">erf</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="p">(</span><span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">path_length</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">SQRT2</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">));</span>
+
+        <span class="n">total_factor</span> <span class="o">*=</span> <span class="n">exp</span><span class="p">(</span>
+            <span class="n">f</span> <span class="o">*</span> <span class="n">f</span> <span class="o">-</span>
+            <span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span> <span class="o">*</span> <span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">-</span>
+            <span class="n">beam_dt</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="kt">float</span><span class="p">(</span><span class="n">beam_num_edges</span><span class="p">)</span> <span class="o">-</span>
+                <span class="kt">float</span><span class="p">(</span><span class="n">edge_id</span><span class="p">)</span> <span class="o">-</span>
+                <span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="n">path_length</span>
+            <span class="p">)</span> <span class="o">/</span> <span class="n">beam_decay_time</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">path_length</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span>
+    <span class="p">{</span>
+        <span class="n">total_factor</span> <span class="o">*=</span> <span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="n">dot</span><span class="p">(</span><span class="n">beam_coord</span><span class="p">,</span> <span class="n">beam_coord</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">SQRT2PI</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">outColor</span> <span class="o">=</span> <span class="kt">vec4</span><span class="p">(</span><span class="n">total_factor</span> <span class="o">*</span> <span class="n">beam_color</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">);</span>
+<span class="p">}</span>
+</pre>
+<h2>Conclusion</h2>
+<p>Although you can make great games without being very good at math, or physics, here I was able to show you how leveraging math I could create a game with a unique graphics style. Although I've presented here the final renderer, my first approach was a really dumb CPU implementation where I explicitly (and inaccurately) performed the integral by drawing and accumulating a gaussian for each pixel in the beam's path. The results are actually not that bad as you can see below, and the performance is also better than you'd expect.
+<img src="../files/old_cpu_beam_renderer.png" width="448px" style="display:block; padding:1em 0;">
+Still, by constantly iterating on this idea, I was able to build something much more robust and performant. Despite that, there is still quite a bit room for improvement, such as reducing the overdraw by drawing a triangle strip, or reducing the number of required points, N, by using a better interpolation scheme than the linear interpolation we use now. The latter of course introduces additional complexity for calculating the relevant integrals.</p>
+<p>Finally, the implementation of the oscilloscope input is also a very interesting story which I'd like to discuss next time. By introducing a vocabulary of input signals that can be combined in interesting ways, we can even build a simulation of a monochrome CRT monitor. The latter is something I'd like to explore more in the future, including the simulation of color CRT displays.</p>
+<p>This is what I like about game programming; taking a simple idea and iterating on it. Playing with different ideas and researching the different possibilities, slowly gravitating to the ones you find the most interesting.</p>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="rust-vs-c%2B%2B-implementing-a-neural-network.html" rel="prev" title="Rust vs C++ - Implementing a Neural Network">Previous post</a>
+            </li>
+        </ul></nav></aside><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha384-3lJUsx1TJHt7BA4udB5KPnDrlkO8T6J6v/op7ui0BbCjvZ9WqV4Xm6DTP6kQ/iBH" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});
+        </script></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
