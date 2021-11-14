@@ -451,6 +451,7 @@ pre.code, code {
     white-space: pre;
     word-wrap: normal;
     overflow: auto;
+    padding: 0.5em;
 }
 
 /* SOURCE: https://github.com/h5bp/html5-boilerplate/blob/master/src/css/main.css */
