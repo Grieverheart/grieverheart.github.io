@@ -12,12 +12,13 @@
 .. pretty_url: False
 -->
 
-It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on [itch.io](https://studiostok.itch.io/vectron). In this post I wanted to tell you a bit about how I programmed the graphics of Vectron.
+It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on [itch.io](https://studiostok.itch.io/vectron).
 <!-- TEASER_END -->
+<iframe frameborder="0" src="https://itch.io/embed/876407?dark=true" width="552" height="167"><a href="https://studiostok.itch.io/vectron">Vectron by studiostok</a></iframe>
 
 # Vectron's graphics
 
-<img src="/files/vectron_start_screen.png" width="448px" style="display:block; padding:1em 0;"/>
+<iframe width="552" height="552" src="https://www.youtube.com/embed/WcncEPcXbco" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 After I worked out the basic gameplay elements of Vectron, I made some mood boards to help me determine the visual style I'd like to develop. In the end I wanted my game to have a visual style similar to the arcade game, [Tempest](https://en.wikipedia.org/wiki/Tempest_(video_game)), or the [Vectrex](https://en.wikipedia.org/wiki/Vectrex) and I was also greatly inspired by [video of Quake being played on an oscilloscope](https://www.youtube.com/watch?v=GIdiHh6mW58). This led me to doing some research on how the [Tempest was programmed](http://www.kfu.com/~nsayer/games/tempest.html), and how the beam in a CRT monitor works and interacts with the phosphors. Then, it was just a matter of time before I discovered the work of [Jerobeam Fenderson](https://www.youtube.com/user/jerobeamfenderson1), who is making music that looks amazing when displayed on an XY oscilloscope. I thus decided to base the design of my game around the concept of sound driving the graphics of the game and vice-versa.
 
