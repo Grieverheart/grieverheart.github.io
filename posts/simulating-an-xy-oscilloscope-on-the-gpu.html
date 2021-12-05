@@ -18,7 +18,7 @@
 <meta property="og:site_name" content="NICK TASIOS">
 <meta property="og:title" content="Simulating an XY oscilloscope on the GPU">
 <meta property="og:url" content="http://www.nicktasios.nl/posts/simulating-an-xy-oscilloscope-on-the-gpu.html">
-<meta property="og:description" content="It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it ">
+<meta property="og:description" content="It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron. Alth">
 <meta property="og:image" content="http://www.nicktasios.nl/files/vectron_start_screen.png">
 <meta property="og:type" content="article">
 <meta property="article:published_time" content="2021-11-05T23:39:37+01:00">
@@ -63,11 +63,13 @@
 
     </header><div class="e-content entry-content" itemprop="articleBody text">
     <div>
-<p>It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on <a href="https://studiostok.itch.io/vectron">itch.io</a>. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron.</p>
+<p>It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on <a href="https://studiostok.itch.io/vectron">itch.io</a>.</p>
 <!-- TEASER_END -->
+<iframe frameborder="0" src="https://itch.io/embed/876407?dark=true" width="552" height="167"><a href="https://studiostok.itch.io/vectron">Vectron by studiostok</a></iframe>
 
 <h2>Vectron's graphics</h2>
-<p><img src="../files/vectron_start_screen.png" width="448px" style="display:block; padding:1em 0;"></p>
+<iframe width="552" height="552" src="https://www.youtube.com/embed/WcncEPcXbco" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 <p>After I worked out the basic gameplay elements of Vectron, I made some mood boards to help me determine the visual style I'd like to develop. In the end I wanted my game to have a visual style similar to the arcade game, <a href="https://en.wikipedia.org/wiki/Tempest_(video_game)">Tempest</a>, or the <a href="https://en.wikipedia.org/wiki/Vectrex">Vectrex</a> and I was also greatly inspired by <a href="https://www.youtube.com/watch?v=GIdiHh6mW58">video of Quake being played on an oscilloscope</a>. This led me to doing some research on how the <a href="http://www.kfu.com/~nsayer/games/tempest.html">Tempest was programmed</a>, and how the beam in a CRT monitor works and interacts with the phosphors. Then, it was just a matter of time before I discovered the work of <a href="https://www.youtube.com/user/jerobeamfenderson1">Jerobeam Fenderson</a>, who is making music that looks amazing when displayed on an XY oscilloscope. I thus decided to base the design of my game around the concept of sound driving the graphics of the game and vice-versa.</p>
 <h2>Oscilloscope basics</h2>
 <p><img src="../files/Oscilloscope_sine_square.jpg" style="display:block; padding:1em 0;"></p>

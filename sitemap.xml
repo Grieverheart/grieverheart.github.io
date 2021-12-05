@@ -19,7 +19,7 @@
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/</loc>
-  <lastmod>2021-11-14T18:58:00Z</lastmod>
+  <lastmod>2021-11-14T19:06:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/first_post.html</loc>
@@ -34,12 +34,8 @@
   <lastmod>2021-11-14T18:58:00Z</lastmod>
  </url>
  <url>
-  <loc>http://www.nicktasios.nl/posts/simulating-an-xy-oscilloscope-for-vectron.html</loc>
-  <lastmod>2021-11-14T18:57:00Z</lastmod>
- </url>
- <url>
   <loc>http://www.nicktasios.nl/posts/simulating-an-xy-oscilloscope-on-the-gpu.html</loc>
-  <lastmod>2021-11-14T19:00:00Z</lastmod>
+  <lastmod>2021-12-05T12:43:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-1.html</loc>
@@ -63,7 +59,7 @@
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/</loc>
-  <lastmod>2021-11-14T14:14:00Z</lastmod>
+  <lastmod>2021-12-05T12:19:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/SimpleEDMD.html</loc>
@@ -84,5 +80,9 @@
  <url>
   <loc>http://www.nicktasios.nl/projects/partviewer.html</loc>
   <lastmod>2021-11-14T14:14:00Z</lastmod>
+ </url>
+ <url>
+  <loc>http://www.nicktasios.nl/projects/vectron.html</loc>
+  <lastmod>2021-12-05T12:25:00Z</lastmod>
  </url>
 </urlset>
