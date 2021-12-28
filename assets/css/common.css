@@ -379,6 +379,13 @@ img {
 .postindex article object {
     height: auto;
     max-width: 100%;
+    margin: auto;
+}
+
+.postpage iframe
+{
+    display: block;
+    margin: auto;
 }
 
 /* Comment helpers */
