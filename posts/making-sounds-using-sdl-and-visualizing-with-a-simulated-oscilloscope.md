@@ -5,6 +5,7 @@
 .. tags: 
 .. category: 
 .. has_math: true
+.. previewimage: /files/oscillations.png
 .. link: 
 .. description: 
 .. type: text
