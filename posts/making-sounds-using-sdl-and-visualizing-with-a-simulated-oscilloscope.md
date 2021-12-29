@@ -283,3 +283,5 @@ Audio programming is something I don't usually get to play with a lot. Vectron, 
 * [sdl_tone_generator](https://github.com/Grieverheart/sdl_tone_generator)
 * [sdl_tone_oscillator](https://github.com/Grieverheart/sdl_tone_oscillator)
 
+If you liked reading this blog post, please considering supporting me by buying my game, Vectron, from itch.io:
+<iframe frameborder="0" src="https://itch.io/embed/876407?dark=true" width="100%"><a href="https://studiostok.itch.io/vectron">Vectron by studiostok</a></iframe>
