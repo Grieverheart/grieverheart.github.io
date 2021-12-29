@@ -19,6 +19,7 @@
 <meta property="og:title" content="Making sounds using SDL and visualizing them on a simulated oscillosco">
 <meta property="og:url" content="http://www.nicktasios.nl/posts/making-sounds-using-sdl-and-visualizing-them-on-a-simulated-oscilloscope.html">
 <meta property="og:description" content="The most important part of Vectron is the real-time generation and visualization of audio. In the previous blog post I already built a simulated XY oscilloscope which I'll use to visualize the two ste">
+<meta property="og:image" content="http://www.nicktasios.nl/files/oscillations.png">
 <meta property="og:type" content="article">
 <meta property="article:published_time" content="2021-12-27T10:49:50+01:00">
 </head>
@@ -70,7 +71,7 @@
 The cyan particles are highlighted to show that, like in other types of waves, particles are not actually moving away from the sound source but oscillate around a fixed point. What you are actually perceiving as motion, above, is the motion of the denser areas, also known as wave fronts. Note that you can also see sparse areas moving in the opposite direction. Our eardrums work in a similar manner; the air particles push the eardrum inwards when they are moving in the direction of our ears while the eardrum, being elastic, oscillates back to its resting position when the velocity of the particles is small enough. Intuitively, you can probably see that the particle velocity is related to pressure; the larger the particle velocity when the particles reach the eardrum, the larger the pressure that is felt by the eardrum. Also, the larger the pressure, the louder the sound is perceived. Our ears can not only sense how loud a sound is, but they also sense frequency which we perceive as the pitch of a sound -- the faster the particle oscillations, the higher the frequency, and thus the pitch.</p>
 <h2>Sound in digital electronics</h2>
 <p><img src="../files/oscillations.png" style="display:block; padding:1em 0;">
-I mentioned that the eardrum converts the sound waves into electrical signal and that a speaker works in a similar way. Indeed, by supplying the speaker with alternating current of a certain frequency and amplitude, we can generate sound with a certain pitch and level, like in the picture above where two sinusoidal signals are depicted, with the cyan one having higher pitch, and smaller level, and the magenta one having a lower pitch but higher level.</p>
+I mentioned that the eardrum converts the sound waves into electrical signal and that a speaker works in a similar way. Indeed, by supplying the speaker with alternating current of a certain frequency and amplitude, we can generate sound with a certain pitch and level, like in the picture above where two sinusoidal signals are depicted, with the magenta one having higher pitch, and smaller level, and the cyan one having a lower pitch but higher level.</p>
 <p>In analogue electronics the translation of sound into electrical signals is straightforward, but in digital electronics we only have 0s and 1s to represent the variation of sound over time, so we first have to 'digitize' sound. This is done by discretizing the signal into a fixed number of levels based on the number of bits we use. For example, an 8 bit sound can have 256 discrete levels. A computer then samples the current sound level with a fixed rate called the 'sampling rate', subsequently quantizes the level based on the number of bits, and this is then converted into an analogue signal to displace the cone of the speaker. The higher the level, the more the cone will be displaced, producing louder sounds. As you can imagine, if the sampling rate is too low, this will have an effect on how we perceive the sound. The most common audio sampling rate you'll see is 44.1kHz, or 44,100 samples per second. This is not an arbitrary number as humans can generally hear frequencies between 20Hz and 20kHz and the approximately double-rate is a requirement for perfect fidelity according to the <a href="https://en.wikipedia.org/wiki/Nyquist%E2%80%93Shannon_sampling_theorem">Nyquist theorem</a>.</p>
 <h2>Producing sound with SDL</h2>
 <p>Interfacing with an audio device in SDL is quite straightforward. An audio device can be 'opened' using the <a href="https://wiki.libsdl.org/SDL_OpenAudioDevice">SDL_OpenAudioDevice</a> call:</p>
@@ -305,8 +306,8 @@ A ring buffer is basically an array that wraps around itself -- it has no beginn
 <h2>Conclusion</h2>
 <p>Audio programming is something I don't usually get to play with a lot. Vectron, being a audio-driven game, allowed me to explore audio synthesis and solve interesting problems. As I'll show in a future blog post, I designed a system for synthesizing new signals from just a few basic elements and also a sequencer which I used to design the levels. I urge you to also explore sound programming by experimenting with the two repositories I created for this blog post:</p>
 <ul>
-<li><a href="https://github.com/Grieverheart/sdl_tone_generator">https://github.com/Grieverheart/sdl_tone_generator</a></li>
-<li><a href="https://github.com/Grieverheart/sdl_tone_oscillator">https://github.com/Grieverheart/sdl_tone_oscillator</a></li>
+<li><a href="https://github.com/Grieverheart/sdl_tone_generator">sdl_tone_generator</a></li>
+<li><a href="https://github.com/Grieverheart/sdl_tone_oscillator">sdl_tone_oscillator</a></li>
 </ul>
 </div>
     </div>

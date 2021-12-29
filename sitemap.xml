@@ -7,98 +7,86 @@
                         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
  <url>
   <loc>http://www.nicktasios.nl/</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/about/</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/categories/</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/</loc>
-  <lastmod>2021-12-27T09:53:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/first_post.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/in-search-for-creativity.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/making-sounds-using-sdl-and-visualizing-them-on-a-simulated-oscilloscope.html</loc>
-  <lastmod>2021-12-28T18:26:00Z</lastmod>
- </url>
- <url>
-  <loc>http://www.nicktasios.nl/posts/making-sounds-using-sdl-and-visualizing-them-on-a-simulated-oscilloscope/</loc>
-  <lastmod>2021-12-27T09:53:00Z</lastmod>
- </url>
- <url>
-  <loc>http://www.nicktasios.nl/posts/making-sounds-using-sdl-and-visualizing-with-a-simulated-oscilloscope/</loc>
-  <lastmod>2021-12-27T09:49:00Z</lastmod>
- </url>
- <url>
-  <loc>http://www.nicktasios.nl/posts/oscilloscope-sdl-sound/</loc>
-  <lastmod>2021-12-27T09:51:00Z</lastmod>
+  <lastmod>2021-12-29T20:41:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/rust-vs-c%2B%2B-implementing-a-neural-network.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/simulating-an-xy-oscilloscope-on-the-gpu.html</loc>
-  <lastmod>2021-12-27T09:53:00Z</lastmod>
+  <lastmod>2021-12-29T20:39:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-1.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-2.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-3.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-4.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/space-invaders-from-scratch-part-5.html</loc>
-  <lastmod>2021-12-28T15:08:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/SimpleEDMD.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/inip.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/ions3D.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/ntcd.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/partviewer.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/projects/vectron.html</loc>
-  <lastmod>2021-12-27T09:42:00Z</lastmod>
+  <lastmod>2021-12-29T17:33:00Z</lastmod>
  </url>
 </urlset>
