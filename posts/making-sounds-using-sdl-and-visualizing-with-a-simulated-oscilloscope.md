@@ -280,6 +280,6 @@ The current implementation of the code, which you can find [here](https://github
 
 Audio programming is something I don't usually get to play with a lot. Vectron, being a audio-driven game, allowed me to explore audio synthesis and solve interesting problems. As I'll show in a future blog post, I designed a system for synthesizing new signals from just a few basic elements and also a sequencer which I used to design the levels. I urge you to also explore sound programming by experimenting with the two repositories I created for this blog post:
 
-* [https://github.com/Grieverheart/sdl_tone_generator](https://github.com/Grieverheart/sdl_tone_generator)
-* [https://github.com/Grieverheart/sdl_tone_oscillator](https://github.com/Grieverheart/sdl_tone_oscillator)
+* [sdl_tone_generator](https://github.com/Grieverheart/sdl_tone_generator)
+* [sdl_tone_oscillator](https://github.com/Grieverheart/sdl_tone_oscillator)
 

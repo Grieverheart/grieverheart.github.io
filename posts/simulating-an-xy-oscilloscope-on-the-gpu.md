@@ -14,11 +14,13 @@
 
 It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on [itch.io](https://studiostok.itch.io/vectron).
 <!-- TEASER_END -->
-<iframe frameborder="0" src="https://itch.io/embed/876407?dark=true" width="552" height="167"><a href="https://studiostok.itch.io/vectron">Vectron by studiostok</a></iframe>
+<iframe frameborder="0" src="https://itch.io/embed/876407?dark=true" width="100%"><a href="https://studiostok.itch.io/vectron">Vectron by studiostok</a></iframe>
 
 # Vectron's graphics
 
-<iframe width="552" height="552" src="https://www.youtube.com/embed/WcncEPcXbco" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<div id="youtube-resize">
+<iframe src="https://www.youtube.com/embed/WcncEPcXbco" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
 
 After I worked out the basic gameplay elements of Vectron, I made some mood boards to help me determine the visual style I'd like to develop. In the end I wanted my game to have a visual style similar to the arcade game, [Tempest](https://en.wikipedia.org/wiki/Tempest_(video_game)), or the [Vectrex](https://en.wikipedia.org/wiki/Vectrex) and I was also greatly inspired by [video of Quake being played on an oscilloscope](https://www.youtube.com/watch?v=GIdiHh6mW58). This led me to doing some research on how the [Tempest was programmed](http://www.kfu.com/~nsayer/games/tempest.html), and how the beam in a CRT monitor works and interacts with the phosphors. Then, it was just a matter of time before I discovered the work of [Jerobeam Fenderson](https://www.youtube.com/user/jerobeamfenderson1), who is making music that looks amazing when displayed on an XY oscilloscope. I thus decided to base the design of my game around the concept of sound driving the graphics of the game and vice-versa.
 
@@ -71,15 +73,15 @@ In practice, this is a reasonable assumption, and setting this expression to 0, 
 In my implementation of the oscilloscope renderer, I draw a fixed number, N, of segments each frame. Furthermore, I use the frame time to multiply the whole frame with the exponential decay factor. I achieve this by using a [Frame Buffer Object (FBO)](https://en.wikipedia.org/wiki/Framebuffer_object), and alpha blending for multiplying by the decay factor. The rendering steps are then the following:
 
 1. Bind the FBO.
-2. Set the blend function to `glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA)`.
+2. Set the blend function to glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA).
 3. Render a full screen quad with a black color and alpha set to the decay factor, \\(e^{-\lambda \delta t N}\\).
-4. Set the blend function to `glBlendFunc(GL_ONE, GL_ONE)`.
+4. Set the blend function to glBlendFunc(GL_ONE, GL_ONE).
 3. Render beam segments.
 4. Disable alpha blending.
 5. Bind the draw buffer and draw the FBO texture to the screen (using SRGB).
 
 Most of the steps are really simple and you can find out how to draw a fullscreen quad on other blog posts, such as [this one](/posts/space-invaders-from-scratch-part-2.html). For drawing the beam segments we actually use a trick that was described in m1el's post, namely we draw quads but instead of passing the coordinates of each corner, we only pass the coordinates of the segment endpoints, and generate the quad coordinates in the vertex shader based on their vertex id.
-<img src="/files/beam_segment_quad.svg" style="display:block; padding:1em 5em;"/>
+<img src="/files/beam_segment_quad.svg" style="display:block; width: 80%;"/>
 The implementation of the above trick can be seen in the vertex shader:
 ```GLSL
 #version 330
