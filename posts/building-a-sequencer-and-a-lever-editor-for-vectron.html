@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Building a Sequencer and a Lever Editor for Vectron | NICK TASIOS</title>
+<link href="../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/building-a-sequencer-and-a-lever-editor-for-vectron.html">
+<!--[if lt IE 9]><script src="../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="making-sounds-using-sdl-and-visualizing-them-on-a-simulated-oscilloscope.html" title="Making sounds using SDL and visualizing them on a simulated oscilloscope." type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Building a Sequencer and a Lever Editor for Vectron">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/building-a-sequencer-and-a-lever-editor-for-vectron.html">
+<meta property="og:description" content="Vectron is unique in the way audio, graphics, and gameplay are intertwined. This feature of Vectron meant I had to build a special audio sequencer that also worked as a level editor.
+
+The central conc">
+<meta property="og:image" content="http://www.nicktasios.nl/files/patch_sequence.png">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2022-09-13T22:52:33+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href=".">Blog</a></li>
+                <li><a href="../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="#" class="u-url">Building a Sequencer and a Lever Editor for Vectron</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="#" rel="bookmark"><time class="published dt-published" datetime="2022-09-13T22:52:33+02:00" itemprop="datePublished" title="2022-09-13 22:52">2022-09-13 22:52</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p><a href="https://studiostok.itch.io/vectron">Vectron</a> is unique in the way audio, graphics, and gameplay are intertwined. This feature of Vectron meant I had to build a special audio sequencer that also worked as a level editor.</p>
+<!-- TEASER_END -->
+<p>The central concept I used to drive audio and gameplay is that of a "patch". A patch in the context of digital audio workstations (DAW) is a single setting or group of settings that are exported out of a software instrument that can be imported and used with similar software. In the example below you see how a music sequencer looks like. On the left you have different slots or channels, and in each channel we can play different samples, with the bottom indicating the time progression. The interesting part is that these "samples" can be anything, from audio samples, to audio effects, such as reverb, which don't themselves produce audio, but modify the sound.
+<img src="../files/music2000.png" style="display:block; padding:1em 0;">
+Similarly, in the context of Vectron, I defined a "patch" to be an audio producing entity, but also introduced so-called patch transforms which modify patches. Instances of these patches and transforms can be sequenced by giving them a certain start and end time in which they are active. I will describe patches and patch transforms in more detail later.</p>
+<p>While in a traditional DAW, the channels are mixed together, in case of Vectron, we can only have one channel because we only have one beam <sup id="fnref:1"><a class="footnote-ref" href="building-a-sequencer-and-a-lever-editor-for-vectron.html#fn:1">1</a></sup>. If we would mix different channels, the shapes we are trying to display would also be averaged together, producing an ugly mess. Instead, to be able to keep the shapes we have to "average" the channels by playing them in sequence really fast. This unfortunately alters the sound of each channel but we have to live with it. Below you can see in my design notes how I came up with the idea for the sequencer.
+<img src="../files/vectron_notes_sequencer.jpg" style="display:block; padding:1em 3em;">
+I describe a system with 5 channels divided in time "buckets" where the sequencer plays a time back sequentially from each channel. This was still in the exploration phase so there is some discussion on other solutions, and possible issues.</p>
+<h2>Functional Reactive Audio Synthesis</h2>
+<p>Having given a short overview of the patch sequencing used in Vectron, let's take a deep dive into the actual design choices I made for patches and patch transforms. The fundamental design choice I took was that a patch is in essence a 2D <a href="https://en.wikipedia.org/wiki/Parametric_equation">parametric equation</a>, where the parameter is taken to be time. For example, a circle is described by \((x, y) = (\cos2\pi t, \sin2\pi t)\). For simplicity, I chose the parameter to be between 0 and 1. Things become interesting when you consider the parametric equations to be 2D vectors and start doing math and vector operations with them. For example, adding a constant parametric equation, e.g. \((x, y) = (a, b)\) to the parametric equation of the circle will translate it by the amount \((a, b)\), while multiplying will result in an ellipse with radii \(a, b\).</p>
+<p>These concepts were succinctly described in the context of computer animations in the seminal ICFP 97 paper <a href="http://conal.net/papers/icfp97/">Functional Reactive Animation</a> by Conal Elliott and Paul Hudak, and these concepts were later recognized as a programming paradigm known as Functional Reactive Programming (FRP). Funnily, I came across an application of FRP in <a href="https://www.microsoft.com/en-us/research/publication/composing-contracts-an-adventure-in-financial-engineering/">composing financial contracts</a> when I was working as a quant developer by the well known Simon Peyton Jones, a major contributor of the <a href="https://www.haskell.org">Haskell</a> language. FRP borrows machinery from functional programming for manipulating time varying behaviors and events. For example, a well known functional programming tool is known as <code>map</code> and applies an ordinary function to the elements of a collection, in this case, the coordinates of the patch. If for example we have a patch \((a,b)\), we can map the sine function onto it, which will result in \((\sin a, \sin b)\). FRP allows expressiveness with just a few elements, building a kind of vocabulary.</p>
+<p>All this sounds very theoretical, so let's get into the nitty gritty details. A patch is simply defined as,</p>
+<pre class="code literal-block"><span class="k">struct</span> <span class="nc">Patch</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">type</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">userdata</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">call</span><span class="p">)(</span><span class="w"></span>
+<span class="w">        </span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">userdata</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">f</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="w"></span>
+<span class="w">    </span><span class="p">);</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+</pre>
+<p>By adding a <code>type</code> field and a <code>void* userdata</code> we can easily create a discriminated union (also known as variant). The <code>call</code> field is a function taking the userdata along with the parameter <code>t</code> as well as a frequency parameter, <code>f</code>, which I have not yet discussed, and returns a point (x, y). As I'll discuss later, notes can be played in the patch sequencer by adding frequency intervals (i.e. setting the frequency for a time interval) to the sequence. Being able to change the frequency of each patch instance, though, gives us more flexibility. This frequency parameter is equivalent to \(g(t, f) = h(t f)\). In the end, only the following 13 patch types are needed to express most operations:</p>
+<pre class="code literal-block"><span class="k">enum</span> <span class="nc">PatchType</span><span class="o">:</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_LIFT1</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_LIFT2</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_FREQUENCY</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_TIME</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_POINT</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_POINT_OBS</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_RANDOM</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_SEQ</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_SELECT</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_FLIP</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_AUDIO</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_FMUL</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="n">PT_FSET</span><span class="p">,</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+</pre>
+<p><code>PT_LIFT1 &amp; 2</code> are so-called <a href="https://wiki.haskell.org/Lifting">lifting operators</a>. <code>PT_LIFT1</code> takes two functions,</p>
+<pre class="code literal-block"><span class="k">typedef</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">DoubleFunc1</span><span class="p">)(</span><span class="kt">double</span><span class="p">);</span><span class="w"></span>
+</pre>
+<p>which each operate on x and y, producing a new patch, allowing us to implement unary operations on patches. We can for example implement the absolute value as,</p>
+<pre class="code literal-block"><span class="n">Patch</span><span class="w"> </span><span class="nf">pt_fabs</span><span class="p">(</span><span class="n">Patch</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">pt_lift1</span><span class="p">(</span><span class="n">fabs</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">);</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre>
+<p><code>PT_LIFT2</code>, on the other hand, takes two functions,</p>
+<pre class="code literal-block"><span class="k">typedef</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">DoubleFunc2</span><span class="p">)(</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="p">);</span><span class="w"></span>
+</pre>
+<p>along with two patches, and each function takes a x and y from each patch respectively. This allows us to also implement binary operations, such as addition between patches.
+<code>PT_FREQUENCY</code> and <code>PT_TIME</code> set the coordinates x and y equal to the frequency and time respectively. <code>PT_POINT</code> represents a fixed point, <code>PT_RANDOM</code> is a point with randomly changing position, <code>PT_SEQ</code> takes a number of patches and calls them sequentially based on time/frequency (this allows us to build e.g. polygons), <code>PT_FLIP</code> swaps the patch x and y, and <code>PT_AUDIO</code> is a sampled wav audio. <code>PT_FMUL</code> and <code>PT_FSET</code> are special in that they operate on the frequency part of the patch, with <code>PT_FMUL</code> multiplying the frequency by a constant, while <code>PT_FSET</code> sets the frequency to the supplied constant. Finally, I left <code>PT_POINT_OBS</code>, and <code>PT_SELECT</code> as last because they take as input "observables", basically a new type bound to an observable, e.g. a pointer to a changing value, with <code>PT_POINT_OBS</code> setting the patch coordinates to be equal to the observable, and <code>PT_SELECT</code> being the equivalent of an if/else statement based on the observable value.</p>
+<p>Finally, even though it's strictly redundant, I also introduced patch transforms, which are very similar to simple patches, but instead of generating a point, they modify one, i.e. \((x',y') = h(t, f, x, y)\). Why I say it's redundant is because you can either pass the point that will be modified as an observable, or define a patch to be equivalent to the definition of a patch transform. Nonetheless, it seemed simpler for Vectron to just introduce a new type. These patch transforms act on the specified sequencer channel; the patch for that channel is first applied giving a beam point (x, y), and this is in turn passed to the patch transform to produce the final point. In the end I only implemented scaling, translation, and if/else based on an observable value.</p>
+<h2>The Design of the Patch Sequencer</h2>
+<p>Implementing the patch sequencer was not trivial. As I mentioned earlier, the sequencer uses a number of channels/tracks, which can also be seen as sprites in retro consoles like the NES. There is a limit to the number of sprites the NES can display on the screen, and if you want to display more sprites you will get flicker because not all sprites can be displayed at the same time. In the design of the patch sequencer, which you can see below, I ended up fixing the number of channels to 8, which felt reasonable enough to get enough action on the screen.</p>
+<pre class="code literal-block"><span class="k">struct</span> <span class="nc">PatchSequencer</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">time</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">frequency</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">interval_advancement</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">FrequencyInterval</span><span class="o">*</span><span class="w"> </span><span class="n">frequency_intervals</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">size_frequency_intervals</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_frequency_intervals</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">current_fid</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">size_patch_instances</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_patch_instances</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">patch_channel_position</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="n">PatchInstance</span><span class="o">*</span><span class="w"> </span><span class="n">patch_instances</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">size_transform_instances</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_transform_instances</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">transform_channel_position</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="n">PatchTransformInstance</span><span class="o">*</span><span class="w"> </span><span class="n">transform_instances</span><span class="p">[</span><span class="n">PS_NUM_CHANNELS</span><span class="p">];</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+</pre>
+<p>Keep in mind, though, that 2 of the channels are dedicated to the player patch -- a patch can take up multiple channels, which increases the overall brightness of that patch on screen. The channels are the main complication I had to tackle when implementing the patch sequencer.</p>
+<p>Generally, in a game loop a frame is rendered and the simulated components (e.g. physics, AI, etc.) are advanced by an amount equivalent to the frame time. In Vectron, I followed the same approach, advancing the beam simulation by an amount equal to the frame time. In a <a href="simulating-an-xy-oscilloscope-on-the-gpu.html">previous post</a>, I explained that in my implementation of the beam renderer, I draw a fixed number of (line) segments, <code>N</code>, each frame, and each segment is assumed to take a fraction of the total time, <code>dt = t / N</code>, where <code>t</code> is the frame time. Finally, the coordinates of each beam segment are calculated by advancing the patch sequencer by <code>dt</code>. The steps can be summarized in (python-like) pseudocode as follows:</p>
+<pre class="code literal-block"><span class="n">dt</span> <span class="o">=</span> <span class="n">t</span> <span class="o">/</span> <span class="n">N</span>
+<span class="n">beam_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">last_point</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="n">next_xy</span> <span class="o">=</span> <span class="n">advance_patch_sequencer</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+    <span class="n">beam_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">next_xy</span><span class="p">)</span>
+</pre>
+<p>The trickiest part of the simulation is contained in the <code>advance_patch_sequencer</code> function. Here, we first check if we should advance the frequency interval to the next one, then we calculate the channel the sequencer should be in, and check if there are any active patch instances and transforms for that channel. We don't have to look though the whole channel, though; instead, we keep a <code>channel_position</code> variable for each channel, which keeps track of the index of the current active patch instance or transform in the sorted patch instance or transform array, e.g. <code>patch_channel_positions</code> and <code>patch_instances</code>. Calculating the current sequencer channel can be harder than it first appears -- the frequency of the sequencer can change. This is equivalent to finding what position a car is given its starting position and velocity over time. One has to integrate the velocity over time and add the starting position to calculate the current car position. The velocity in our case is the patch sequencer frequency, which is measured in sweeps per second, where during a single sweep the patch sequencer visits all channels once. To make this calculation easier, we keep a running sum of the advancement (measured in sweeps) and update the sum whenever we switch frequency intervals. Then, the current total advancement can be calculated as,</p>
+<pre class="code literal-block"><span class="kt">double</span><span class="w"> </span><span class="n">advancement</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">    </span><span class="n">interval_advancement</span><span class="w"> </span><span class="o">+</span><span class="w"></span>
+<span class="w">    </span><span class="p">(</span><span class="n">current_time</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">current_frequency_interval</span><span class="p">.</span><span class="n">start_time</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"></span>
+<span class="w">    </span><span class="n">current_frequency</span><span class="p">;</span><span class="w"></span>
+</pre>
+<p>and the current channel is then just,</p>
+<pre class="code literal-block"><span class="kt">uint64_t</span><span class="w"> </span><span class="n">sequencer_channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">uint64_t</span><span class="p">(</span><span class="w"></span>
+<span class="w">    </span><span class="n">advancement</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PS_NUM_CHANNELS</span><span class="w"></span>
+<span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">PS_NUM_CHANNELS</span><span class="p">;</span><span class="w"></span>
+</pre>
+<p>In principle, problems can occur due to accuracy when very long sequences are considered, but that is out of the scope of the game engine.</p>
+<h2>Gameplay from audio</h2>
+<p>Below you see a visual representation of what the patch sequencer sees. On the top half the 8 channels of the patch sequencer are represented, with colored blocks representing patch instances, while in the bottom half are the frequency intervals, or notes of this patch sequence.
+<img src="../files/patch_sequence.png" style="display:block; padding:1em 3em;">
+You might have noticed that the patch instance blocks have different colors. The different colors correspond to different types of patch instances -- for example the cyan one indicates a player patch. What you actually see in the image is part of a stage. A stage in Vectron is defined very similar to a patch sequence, as a collection of patch instances, transforms, and notes, only there is additional gameplay-specific information attached to each patch. When a stage is loaded, there is logic that initializes a patch sequence in the sequencer, and also initializes some structures for house-keeping during gameplay. One of the basic elements of gameplay, for example, are these lines (I call them beat annuli, which is a remnant from the first game concept) that come towards you, which you have to reflect back by pushing the fire button, while they are within the player square. While loading the stage, these are added to a queue, and the game logic checks if either the player has pushed fire at the right time, or if the window of opportunity was missed. In the former case, the patch of the patch instance corresponding to the beat annulus gets replace with one that travels backwards. In the latter case, a patch transform is added to the sequence which disturbs the player "sprite" to indicate that they lost a live. The patch sequence is thus dynamic, and gets modified based on the player actions.</p>
+<h2>Conclusion</h2>
+<p>Due to the way Vectron was designed to use audio as the driver of both the graphics and gameplay, I had to come up with a unique solution for the game engine and the level design. I had to build an audio sequencer where each patch in the sequence is not only producing or modifying sound, but also potentially being a gameplay element. Building this sequencer while ensuring that gameplay, audio, and graphics are properly synchronized was challenging, but ultimately the solution seems obvious when you know it. I love how games can teach you many skills, but building games can teach you a very different set of skills. Every game presents its own set of challenges which you have to overcome to build the version of the game you envisioned, but every time you overcome these challenges you become a bit wiser.</p>
+<div class="footnote">
+<hr>
+<ol>
+<li id="fn:1">
+<p>You might think, why not introduce more beams, perhaps with different colors, and I did think about it before, but decided to keep the game/engine simple. Also, having multiple beams breaks the duality of the audio and graphical representation. <a class="footnote-backref" href="building-a-sequencer-and-a-lever-editor-for-vectron.html#fnref:1" title="Jump back to footnote 1 in the text">↩</a></p>
+</li>
+</ol>
+</div>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="making-sounds-using-sdl-and-visualizing-them-on-a-simulated-oscilloscope.html" rel="prev" title="Making sounds using SDL and visualizing them on a simulated oscilloscope.">Previous post</a>
+            </li>
+        </ul></nav></aside><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha384-3lJUsx1TJHt7BA4udB5KPnDrlkO8T6J6v/op7ui0BbCjvZ9WqV4Xm6DTP6kQ/iBH" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});
+        </script></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
