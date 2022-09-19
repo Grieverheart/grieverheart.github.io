@@ -1,5 +1,5 @@
 <!--
-.. title: Building a Sequencer and a Lever Editor for Vectron
+.. title: Building a Sequencer and a Level Editor for Vectron
 .. slug: building-a-sequencer-and-a-lever-editor-for-vectron
 .. date: 2022-09-13 22:52:33 UTC+02:00
 .. tags:
