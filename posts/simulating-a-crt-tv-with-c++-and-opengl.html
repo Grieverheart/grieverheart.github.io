@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Simulating a CRT TV with C++ and OpenGL | NICK TASIOS</title>
+<link href="../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/simulating-a-crt-tv-with-c%2B%2B-and-opengl.html">
+<!--[if lt IE 9]><script src="../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="building-a-sequencer-and-a-lever-editor-for-vectron.html" title="Building a Sequencer and a Level Editor for Vectron" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Simulating a CRT TV with C++ and OpenGL">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/simulating-a-crt-tv-with-c%2B%2B-and-opengl.html">
+<meta property="og:description" content="With the aid of the oscilloscope simulator we built in a past blog post, we will now build CRT TV simulator.
+
+CRT (cathode-ray tube) TVs were ubiquitous up until around 2010 when they were superseded ">
+<meta property="og:image" content="http://www.nicktasios.nl/files/crt_screenshot.png">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2022-09-24T11:06:33+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href=".">Blog</a></li>
+                <li><a href="../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="simulating-a-crt-tv-with-c%2B%2B-and-opengl.html" class="u-url">Simulating a CRT TV with C++ and OpenGL</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="simulating-a-crt-tv-with-c%2B%2B-and-opengl.html" rel="bookmark"><time class="published dt-published" datetime="2022-09-24T11:06:33+02:00" itemprop="datePublished" title="2022-09-24 11:06">2022-09-24 11:06</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>With the aid of the oscilloscope simulator we built in a <a href="simulating-an-xy-oscilloscope-on-the-gpu.html">past blog post</a>, we will now build CRT TV simulator.</p>
+<!-- TEASER_END -->
+<p>CRT (cathode-ray tube) TVs were ubiquitous up until around 2010 when they were superseded by LCD technology. Even though LCD screens replaced them, in the beginning there were many sacrifices to be made in terms of image quality, and only recently OLED technology is able to to reproduce some of the best qualities of CRT TVs, such as the contrast ratio and small response times. Unfortunately, CRT TV's Achilles heel was its big size and weight, a consequence of the vacuum tube that contained the electron guns.
+<img src="../files/oscilloscopic_tube.jpg" style="display:block; padding:1em 3em;"></p>
+<h2>How a CRT TV works</h2>
+<p>The principle on which CRT TVs work is basically the same as that of an oscilloscope; the part of the glass vacuum tube that forms the screen is coated with a phosphor, an organic material that gets excited when struck by the electron beam, emitting light for a brief period of time. The beam can be targeted with high precision using a so-called deflection yoke, a set of electromagnets. The beam intensity can also be controlled.</p>
+<p>Now, to actually get an image on screen, the electron beam is moved by the deflection yoke in such a way so as to scan the screen horizontally and vertically from the top left to the bottom right, as shown in the figure below.
+<img src="../files/crt_scan.svg" style="display:block; padding:1em 0em; width: 60%;">
+As you can see, the beam travels continuously from left to right, while vertically it jumps to discrete positions. In the animation below you can see a slowed down simulation of the beam scanning the screen.</p>
+<div style="display:block; padding:1em 3em;"><video width="100%" autoplay loop><source src="../files/crt_slowmo.mp4" type="video/mp4"></source></video></div>
+
+<p>Color CRT TVs are slightly more complicated. Usually they have 3 electron beams, and the screen is coated with red, green, and blue colored phosphors. Using a patterned screen (e.g. a metal plate with tiny holes), the beams can be focused on the appropriately colored phosphors, and the combination of the different colors produces color images. In this blog post we will only simulate black and white CRT TVs, although I'll outline what steps would need to be taken to implement a color simulation.</p>
+<h2>Implementing the CRT simulation</h2>
+<p>In <a href="making-sounds-using-sdl-and-visualizing-them-on-a-simulated-oscilloscope.html">this post</a> we explored how we could visualize audio using an oscilloscope simulation in that post, I included a link to <a href="https://github.com/Grieverheart/sdl_tone_oscillator">sdl_tone_oscillator</a> where you can play with the tone generation and visualization. To guide the electron beam I defined a callback:</p>
+<pre class="code literal-block"><span class="kt">void</span><span class="w"> </span><span class="nf">signal_generator</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">);</span><span class="w"></span>
+</pre>
+<p>which takes the current time in seconds as input, and outputs the x and y coordinates. To build a callback that will move the beam from left to right continuously and from top to bottom discretely, we need to think how the beam coordinates relate to time. First of all, we observe that the both the horizontal and vertical movements of the beam are periodic. It's then important to define the different frequencies involved in these movements. First of all, we set the refresh rate of the screen to 60Hz, and define the vertical resolution to be 240 lines, a common video resolution also known as 240p (do note that 240p can also actually refer to different number of lines, close to 240). Using these definitions, the horizontal frequency can be calculated as 240x60Hz, or 14.4kHz. If we multiply time by 14.4kHz, this will give us the number of lines rendered in that time. The fractional part of that number will give us the percentage of the line already traveled. If we mod the number of lines with the number of lines in a frame, i.e. 240, this will give us the current line number. Putting all together, we have:</p>
+<pre class="code literal-block"><span class="kt">void</span><span class="w"> </span><span class="nf">crt_call</span><span class="p">(</span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">userdata</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">z</span><span class="p">)</span><span class="w"></span>
+<span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="kt">double</span><span class="o">*</span><span class="w"> </span><span class="n">intensities</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">double</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="n">userdata</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">60.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">240.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">t</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">xp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="n">f</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">line</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">240</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="o">*</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">xp</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.5</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="o">*</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="p">(</span><span class="n">line</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">120.0</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">120.0</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="o">*</span><span class="n">z</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">intensities</span><span class="p">[</span><span class="mi">240</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">line</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="n">xp</span><span class="o">*</span><span class="mf">240.0</span><span class="p">)];</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
+</pre>
+<p>Note that the coordinates are taken to go from -1 to 1, and also that in contrast to the oscilloscope simulation where we only had to return the x and y coordinates, here we use the z coordinate as the intensity. The <a href="https://github.com/Grieverheart/crt_simulation/blob/main/src/beam_shader.h">beam shader</a> is also slightly modified to incorporate this change; the beam coordinate now is three-dimensional with the z coordinate, the intensity of the beam, being interpolated linearly similarly to the x and y coordinates and subsequently multiplying the overall intensity in the pixel shader.</p>
+<p>Using the simulation, we can load a black and white image to visualize on our simulated CRT TV!
+<img src="../files/crt_screenshot.png" style="display:block; padding:1em 3em;">
+We can zoom-in for some glorious scanline close-up!
+<img src="../files/crt_screenshot_closeup.png" style="display:block; padding:1em 3em;"></p>
+<h2>Conclusion</h2>
+<p>From the oscilloscope simulation we built previously we could build a neat black and white CRT TV simulation. This was quite simple as we only needed to come up with an expression for the beam coordinates as a function of time. Actual CRT TVs were a bit more complicated, with signals including what is known as horizontal and vertical sync pulses to align the beam/picture properly. The CRT TV simulation might actually be overkill for simulating the CRT effect, which might be desirable for playing retro games, see e.g. <a href="https://mattiasgustavsson.itch.io/crtview">CRT View</a> or <a href="https://twitter.com/retrotink2">Mike Chi's</a> upcoming RetroTINK upscaler.
+<img src="../files/retrotink_scanlines.jpg" style="display:block; padding:1em 3em;">
+Nonetheless, if someone wanted to simulate a color CRT TV using the method described in this post, I think the easiest way would be pass the color instead of the beam intensity, thus making the beam points 5d (2d spatial and 3d color). Then, a mask texture (i.e. 0 or 1 letting light through) similar to an aperture grill or shadow mask should be applied to each color channel separately, where the mask is shifted spatially for each channel appropriately. Optionally, a bit of horizontal blur should be applied to simulate some color bleed from the shadow mask, or the shadow mask should be pre-blurred instead.</p>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="building-a-sequencer-and-a-lever-editor-for-vectron.html" rel="prev" title="Building a Sequencer and a Level Editor for Vectron">Previous post</a>
+            </li>
+        </ul></nav></aside></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
