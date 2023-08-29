@@ -2,6 +2,7 @@
 .. title: Latent Diffusion Series: MNIST Classifier
 .. slug: latent-diffusion-series-mnist-classifier
 .. date: 2023-07-30 11:07:30 UTC+02:00
+.. previewimage: /files/mnist_classifier.png
 .. tags: 
 .. category: 
 .. link: 
