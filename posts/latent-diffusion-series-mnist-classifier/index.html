@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Latent Diffusion Series: MNIST Classifier | NICK TASIOS</title>
+<link href="../../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/latent-diffusion-series-mnist-classifier/">
+<!--[if lt IE 9]><script src="../../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="../simulating-a-crt-tv-with-c%2B%2B-and-opengl.html" title="Simulating a CRT TV with C++ and OpenGL" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Latent Diffusion Series: MNIST Classifier">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/latent-diffusion-series-mnist-classifier/">
+<meta property="og:description" content="In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In this first post, we will tr">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2023-07-30T11:07:30+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../../projects/">Projects</a></li>
+                <li><a href="../">Blog</a></li>
+                <li><a href="../../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="." class="u-url">Latent Diffusion Series: MNIST Classifier</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="." rel="bookmark"><time class="published dt-published" datetime="2023-07-30T11:07:30+02:00" itemprop="datePublished" title="2023-07-30 11:07">2023-07-30 11:07</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In this first post, we will train a simple classifier to classify MNIST digits. This will later be used for scoring the quality of the generated digits using a variant of the so-called <a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance">Fréchet inception distance (FID)</a>.  <!-- TEASER_END --> For the other posts, please look below:</p>
+<ol>
+<li>MNIST Classifier</li>
+<li>Variational Autoencoder (VAE)</li>
+<li>Latent Diffusion Model</li>
+</ol>
+<p>The links will become active as soon as they the posts are completed.</p>
+<p>AI papers nowadays can be very daunting, especially ones introducing new concepts, because they build very complex models. This is due to pressure from the audience to present results that are better than previous papers, which leads to micro-optimizations of the architectures. I became a big fan of <a href="https://en.wikipedia.org/wiki/Andrej_Karpathy">Andrej Karpathy</a>, after he released a <a href="https://www.youtube.com/@AndrejKarpathy/videos">series of video lectures</a> where he reduced a few AI concepts down to the bare minimum, making it easy for everyone to grasp backpropagation, and even transformers. As someone that had no formal education in AI, but am self-taught, this inspired me to look into AI papers I'd like to understand better and try to simplify models as much as possible while preserving their core functionality.</p>
+<p>The first concept I want to tackle are Diffusion Models, and more specifically, Latent Diffusion Models. In this series of posts, we will implement the bare minimum required to train a latent diffusion model to generate digits from the <a href="https://en.wikipedia.org/wiki/MNIST_database">MNIST dataset</a>. With bare minimum, here, I mean that we will implement the models using a machine learning framework. We will be using <a href="https://pytorch.org">Pytorch</a>, so I assume that the reader is at least familiar with it, but other frameworks can be used as well. I have created a Python <a href="https://colab.research.google.com/drive/1j8ddAcEeCN02fBP8CE-giMNwowc7cjIw?usp=share_link">notebook on Colab</a>, which you can use to follow along and experiment with this post's code.</p>
+<h2>Diffusion Models</h2>
+<p>Diffusion probabilistic models are a class of models whose job is to remove noise of a known distribution from data – At least, that's one way of looking at diffusion models, and if you'd like to learn more about the many sides of Diffusion models, have a look at <a href="https://yang-song.net/blog/2021/score/">this article</a> by Yang Song, and <a href="https://sander.ai/2023/07/20/perspectives.html">this one</a> by Sander Dieleman, as well as <a href="http://arxiv.org/abs/2208.11970">this</a> paper by Calvin Luo. – Diffusion models were first developed as <a href="https://en.wikipedia.org/wiki/Generative_model">generative models</a> for generating samples that follows the original dataset distribution. The goal of a generative models is to learn to model the true data distribution from observed samples, so that generating new samples is as simple as sampling the learned distribution. Diffusion models achieve this by corrupting the dataset with progressively larger amounts of noise and training a set of probabilistic models to reverse corruption step. This reverse problem is made tractable by using knowledge of the functional form of the reverse distributions.
+<img src="../../files/mnist_corruption.png" style="display:block; padding:1em 0;">
+Above you see an example of images from the <a href="http://yann.lecun.com/exdb/mnist/">MNIST dataset</a> corrupted with increasing amounts of noise.</p>
+<h2>MNIST Dataset</h2>
+<p>The <a href="http://yann.lecun.com/exdb/mnist/">MNIST dataset</a>, consists of a set of images of handwritten digits with dimensions of 28x28 pixels. There are 70000 images in total and it is already split in 60000 training and 10000 test images. Below you can see a sample of a few characters from the dataset.
+<img src="../../files/mnist.png" style="display:block; padding:1em 0;">
+For each image in the dataset, there is a corresponding label indicating which number is depicted. The dataset lends itself nicely for various learning tasks, such as classification, for which, to this date, an accuracy of 99.87% has been achieved <sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>.</p>
+<p>To easily use the dataset in Python, we use <a href="https://pytorch.org/vision/stable/index.html">torchvision</a>,</p>
+<pre class="code literal-block"><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torchvision.datasets</span> <span class="kn">import</span> <span class="n">MNIST</span>
+<span class="n">data_train</span> <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span><span class="s1">'.'</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">data_test</span>  <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span><span class="s1">'.'</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre>
+<p>but you could also download the dataset from <a href="http://yann.lecun.com/exdb/mnist/">http://yann.lecun.com/exdb/mnist/</a>, although you'll need to write some code to parse the binary files.</p>
+<p>The dataset, as we get it from torchvision has values between 0 and 255, and is of type <code>uint8</code>, so, we will convert it to a format that's easier to use for training the classifier, by normalizing it to [0, 1). Furthermore, we will use Pytorch to pad the images with a 2 pixel border, bumping the size to 32x32, which is also more convenient for convolutional neural networks (CNN) that downsample the input at each level.</p>
+<pre class="code literal-block"><span class="n">x_train</span> <span class="o">=</span> <span class="n">data_train</span><span class="o">.</span><span class="n">data</span> <span class="o">/</span> <span class="mf">255.0</span>
+<span class="n">x_val</span>   <span class="o">=</span> <span class="n">data_test</span><span class="o">.</span><span class="n">data</span> <span class="o">/</span> <span class="mf">255.0</span>
+<span class="n">y_train</span> <span class="o">=</span> <span class="n">data_train</span><span class="o">.</span><span class="n">targets</span>
+<span class="n">y_val</span>   <span class="o">=</span> <span class="n">data_test</span><span class="o">.</span><span class="n">targets</span>
+
+<span class="n">x_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">x_val</span>   <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x_val</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre>
+<p>We can easily sample a set of digits for each label,</p>
+<pre class="code literal-block"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">x_num</span> <span class="o">=</span> <span class="n">x_val</span><span class="p">[</span><span class="n">y_val</span> <span class="o">==</span> <span class="n">num</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">sample_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_num</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">sid</span> <span class="o">=</span> <span class="n">sample_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">axes</span><span class="p">[</span><span class="n">num</span><span class="p">,</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">x_num</span><span class="p">[</span><span class="n">sid</span><span class="p">,:,:],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'gray'</span><span class="p">)</span>
+        <span class="n">axes</span><span class="p">[</span><span class="n">num</span><span class="p">,</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">'off'</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre>
+<p>which produces a nice visualization of the variations that can be seen in each handwritten digit.
+<img src="../../files/mnist_ordered.png" style="display:block; padding:1em 0;"></p>
+<h2>Model</h2>
+<p>For the classification model, we use a simple convolutional neural network, which is similar to models like <a href="https://en.wikipedia.org/wiki/LeNet">LeNet</a>.
+<img src="../../files/mnist_classifier.png" style="display:block; padding:1em 0;">
+Above you can see a visual presentation of the network architecture but often the actual code for generating this network architecture can be easier to read.</p>
+<pre class="code literal-block"><span class="k">class</span> <span class="nc">Classifier</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Classifier</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="c1"># 1x32x32</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>                   <span class="c1"># 2</span>
+            <span class="c1"># 8x16x16</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>                   <span class="c1"># 5</span>
+            <span class="c1"># 16x8x8</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">AvgPool2d</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>                   <span class="c1"># 8</span>
+            <span class="c1"># 32x2x2</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(),</span>
+
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span>
+</pre>
+<p>Each level consists of a convolution, a ReLU non-linearity, and a Max or Average Pooling layer which downsample the input, producing 3 resolution levels. These levels are feature extractors, and the pooling layers are used to make sure that features are extracted at resolution levels. Finally, a linear layer is used at the output, to reduce the feature space to 10 dimensions. This 10-dimensional vector encodes the predicted digit as the position of its maximum value. This model has a total of 16554 parameters.</p>
+<h2>Training</h2>
+<p>To train the model, we use the <a href="https://en.wikipedia.org/wiki/Cross-entropy">cross-entropy loss</a>. The <a href="https://en.wikipedia.org/wiki/Cross-entropy">pytorch implementation</a> of this loss expects the unnormalized logits for each class as input. We use Adam<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup> as our optimizer of choice.</p>
+<pre class="code literal-block"><span class="n">epochs</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">batch_size</span> <span class="o">=</span> <span class="mi">256</span>
+<span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1e-3</span>
+<span class="n">i_log</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">learning_rate</span><span class="p">)</span>
+<span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+<span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">train_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">average_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">train_ids</span><span class="p">[</span><span class="n">bid</span><span class="o">*</span><span class="n">batch_size</span><span class="p">:(</span><span class="n">bid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">batch_size</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">batch_ids</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y_train</span><span class="p">[</span><span class="n">batch_ids</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">cross_entropy</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">average_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">i_log</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">y_val_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+            <span class="n">loss_val</span> <span class="o">=</span> <span class="n">cross_entropy</span><span class="p">(</span><span class="n">y_val_pred</span><span class="p">,</span> <span class="n">y_val</span><span class="p">)</span>
+            <span class="n">loss_val</span> <span class="o">=</span> <span class="n">loss_val</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">average_loss</span> <span class="o">/=</span> <span class="n">num_batches</span>
+        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">average_loss</span><span class="p">,</span> <span class="n">loss_val</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Epoch </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> loss = </span><span class="si">{</span><span class="n">average_loss</span><span class="si">}</span><span class="s1">, validation loss = </span><span class="si">{</span><span class="n">loss_val</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+        <span class="n">average_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+</pre>
+<p>As you can see from the code, for each epoch, we first permute the training set and then iterate over the batches. We keep the dataset on the CPU side so we have to move each batch to the device we're doing the calculations on.</p>
+<p>Training this simple model doesn't take too long. We can plot the train and validation loss as a function of the epochs,
+<img src="../../files/mnist_classifier_loss_plot.png" style="display:block; padding:1em 0;">
+You will notice that the validation loss seems to be lower than the training loss, but this is merely an artifact of the way we calculate the train loss; it's averaged over the batches while the model keeps improving during an epoch. Calculating the training loss over the whole dataset can be costly, so we are usually fine with this approach as long as we keep that in mind when comparing the two losses.</p>
+<h2>Evaluation</h2>
+<p>Let us first calculate the accuracy,</p>
+<pre class="code literal-block"><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">y_val_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+<span class="n">accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y_val_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">y_val</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Model accuracy: </span><span class="si">{</span><span class="mf">100.0</span> <span class="o">*</span> <span class="n">accuracy</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">%'</span><span class="p">)</span>
+</pre>
+<p>and we find that the accuracy over the validation dataset is a quite decent 99.1%.</p>
+<p>For a simple model and task like this it's really interesting to look at the activations. To visualize the activations, I average the outputs of the pooling layers over the validation set for each number.</p>
+<pre class="code literal-block"><span class="n">number_feature_maps</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">number</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">feature_maps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">x_val</span><span class="p">[</span><span class="n">y_val</span> <span class="o">==</span> <span class="n">number</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">li</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">l</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">li</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">8</span><span class="p">]:</span>
+                <span class="n">feature_maps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+    <span class="n">number_feature_maps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature_maps</span><span class="p">)</span>
+</pre>
+<p>Then I plot the first activation below, where each row are the activations for the corresponding number.
+<img src="../../files/mnist_classifier_activations_lvl0.png" style="display:block; padding:1em 0;">
+By plotting these activations, we see that some activations work as pass through, letting the scaled down input to pass to the next level. Some other observations we one can extract by retraining the network and plotting the activations is that sometimes, some activations are duplicated. Furthermore, we find that the activations light up when certain parts are detected, like the 3rd activation which detects horizontal lines, or the 5th activation which seems to detect diagonals.</p>
+<p>I also plotted the 2nd set of activation similarly to the plot above. Here it already becomes difficult to reason about their function.
+<img src="../../files/mnist_classifier_activations_lvl1.png" style="display:block; padding:1em 0;">
+We see that the first 2 activations are mostly inactive (which is a waste of memory/compute). If we look at the 7th activation of the number 4, we see that it shows 3 bright pixels, perhaps corresponding to its 3 vertical edges.</p>
+<p>Finally, I would like to remind you that the reason we implemented this classifier is to be able to calculate the <a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance">FID</a> so that we can assess the quality of generated digits of the diffusion model we are going to implement. One of the assumptions of the FID is that the activations are normally distributed. This is used so that an exact expression is calculated for comparing the distributions of the activations of the generated digits and the ones in the dataset. So let us plot the distribution of the first few activations of the last convolutional layer, for the validation dataset. This is done with the following code,</p>
+<pre class="code literal-block"><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">latent_val</span> <span class="o">=</span> <span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">):</span>
+        <span class="n">latent_val</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">latent_val</span><span class="p">)</span>
+    <span class="n">latent_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">avg_pool2d</span><span class="p">(</span><span class="n">latent_val</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">latent_val</span> <span class="o">=</span> <span class="n">latent_val</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">latent_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+<span class="c1"># Plot the distribution of the first 16 latent values for the validation set.</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">):</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="o">//</span><span class="mi">4</span><span class="p">,</span><span class="n">i</span><span class="o">%</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">latent_val</span><span class="p">[:,</span><span class="n">i</span><span class="p">],</span> <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre>
+<p>Note how I apply the layers up to the last convolution, not including the ReLU, since the ReLU removes the negative activations, skewing the distributions. Also, I perform an average pooling, but this is just to reduce the number of activations.
+<img src="../../files/mnist_classifier_activation_distribution.png" style="display:block; padding:1em 0;">
+So, although we cannot say that the distributions are exactly normally distributed, they are really close. To be honest, I'm not sure what the impact of this is when assessing the quality of generated numbers.</p>
+<h2>Conclusion</h2>
+<p>Even though classifiers, especially MNIST ones, are simple and the topic has been quite exhausted, it is worth having a thorough look at them. The motivation for this was to assess the quality of generated numbers of the diffusion model we are going to build. By looking at the activations, we got a better understanding how the classifier works, and found that the activations are close to normally distributed, something that is assumed when calculating the FID.</p>
+<p>I invite you to play around with the <a href="https://colab.research.google.com/drive/1j8ddAcEeCN02fBP8CE-giMNwowc7cjIw?usp=share_link">notebook</a>, and read the next blog (when it's ready).</p>
+<div class="footnote">
+<hr>
+<ol>
+<li id="fn:1">
+<p><a href="https://arxiv.org/abs/2001.09136v6">A. Byerly, T. Kalganova, I. Dear -- No Routing Needed Between Capsules</a> <a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">↩</a></p>
+</li>
+<li id="fn:2">
+<p><a href="https://arxiv.org/abs/1412.6980">D. P. Kingma, J. L. Ba -- Adam: A method for stochastic optimization</a> <a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">↩</a></p>
+</li>
+</ol>
+</div>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="../simulating-a-crt-tv-with-c%2B%2B-and-opengl.html" rel="prev" title="Simulating a CRT TV with C++ and OpenGL">Previous post</a>
+            </li>
+        </ul></nav></aside></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
