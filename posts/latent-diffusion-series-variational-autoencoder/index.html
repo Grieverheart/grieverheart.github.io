@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Latent Diffusion Series: Variational Autoencoder (VAE) | NICK TASIOS</title>
+<link href="../../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/latent-diffusion-series-variational-autoencoder/">
+<!--[if lt IE 9]><script src="../../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="../latent-diffusion-series-mnist-classifier/" title="Latent Diffusion Series: MNIST Classifier" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Latent Diffusion Series: Variational Autoencoder (VAE)">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/latent-diffusion-series-variational-autoencoder/">
+<meta property="og:description" content="In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In the second post, we will bu">
+<meta property="og:image" content="http://www.nicktasios.nl/files/mnist_autoencoder_bg.png">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2023-11-29T15:10:30+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../../projects/">Projects</a></li>
+                <li><a href="../">Blog</a></li>
+                <li><a href="../../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="." class="u-url">Latent Diffusion Series: Variational Autoencoder (VAE)</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="." rel="bookmark"><time class="published dt-published" datetime="2023-11-29T15:10:30+02:00" itemprop="datePublished" title="2023-11-29 15:10">2023-11-29 15:10</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In the second post, we will build and train a variational autoencoder to generate MNIST digits. The latent variables of these models are defined to be normally distributed, something that will later enable our diffusion model operate in the latent space.  <!-- TEASER_END --> For the other posts, please look below:</p>
+<ol>
+<li><a href="../latent-diffusion-series-mnist-classifier">MNIST Classifier</a></li>
+<li><strong>Variational Autoencoder (VAE)</strong></li>
+<li>Latent Diffusion Model</li>
+</ol>
+<p>The links will become active as soon as they the posts are completed. Even though this blog post is part of a series, I will try my best to write it in such a way that it's not required to have read the previous blog posts.</p>
+<p>In this post I will introduce the <a href="https://en.wikipedia.org/wiki/Variational_autoencoder">Variational Autoencoder</a>(VAE) model. We will train the VAE on the MNIST dataset and try to generate some digits by sampling the latent space. If you'd like a bit more about the MNIST dataset, please look at the previous blog post on the <a href="../latent-diffusion-series-mnist-classifier">MNIST Classifier</a>, where I also explore the dataset and show how to easily use it in Pytorch. I have created a Python <a href="https://colab.research.google.com/drive/18UReo17EOUNYoEqVwazgS-JgXjbgOKmr">notebook on Colab</a>, which you can use to follow along and experiment with this post's code.</p>
+<h2>Autoencoder</h2>
+<p>The Variational Autoencoder as the name suggests, is called an autoencoder because it resembles the traditional <a href="https://en.wikipedia.org/wiki/Autoencoder">autoencoder</a> model in the sense that the model is trained in such a way that its output is made to resemble the input. The encoder part of the autoencoder means we encode the input into latent variables by reducing the dimensionality. This dimensionality reduction is also known as a 'bottleneck', and can additionally be seen as compression of the information that goes in.</p>
+<p>Conceptually, we usually split the autoencoder in an encoder part which encodes the input into the latent space, and a decoder, which decodes the latent variable back into the input space.
+<img src="../../files/autoencoder.png" style="display:block; padding:1em 0;">
+— It might be pertinent to discuss briefly what a <a href="https://en.wikipedia.org/wiki/Latent_space">latent space</a> actually is. I will spare you the details, for that please check the Wikipedia link, but with latent space we generally mean a lower dimensional space which encodes the original data space, with the latent variables being the coordinates of this space. This can also be viewed as data compression, just like image compression. —
+Getting back to our autoencoder, if you are particularly creative, you might think of sampling these latent variables randomly and passing them to the decoder to generate outputs that resemble the inputs the model was trained on. Unfortunately, the distribution of the latent variables in a traditional autoencoder is generally not known, so it's difficult to sample them and generate novel outputs without going out of distribution.</p>
+<p>To see how bad the samples look like when generated by randomly sampling the autoencoder latent variable, let's first build and train a simple 2D autonecoder for the MNIST dataset.
+<img src="../../files/mnist_autoencoder.png" style="display:block; padding:1em 0;">
+The diagram shows how we have split the architecture in an encoder part on the left, and a decoder part on the right, which I have tried to keep fairly symmetrical. The reason I'm using this architecture, here, will become clearer on the next post, but this is basically the backbone of a Unet, i.e. without the skip connections. The basic building block is a convolution followed by a batch normalization and finally a Leaky ReLU activation. The encoder and decoder are made up of 4 levels, where each level is subsampled or upsampled, respectively, and is followed by two of these convolutional blocks. The latent code output by the encoder is 4x4x4, or 16 dimensional when flattened. These 16 variables need to encode the different hand-written digits. In total the autoencoder model shown above has 51357 parameters.</p>
+<p>Let's now build the autoencoder using Pytorch:</p>
+<pre class="code literal-block"><span class="k">class</span> <span class="nc">ConvBlock</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fin</span><span class="p">,</span> <span class="n">fout</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ConvBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">fin</span><span class="p">,</span> <span class="n">fout</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">fout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_relu</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_conv</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+
+<span class="k">class</span> <span class="nc">ConvEncoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ConvEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">layers</span>   <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">fi</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">fo</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">fo</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">fo</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                <span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">fo</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">fo</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                <span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span>
+
+<span class="k">class</span> <span class="nc">ConvDecoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ConvDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">layer</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">fi</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">fo</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">layer</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Upsample</span><span class="p">(</span><span class="n">scale_factor</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">fi</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                <span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+                <span class="n">layer</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">fi</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">fo</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">layer</span> <span class="o">+=</span> <span class="p">[</span>
+                    <span class="n">ConvBlock</span><span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">fi</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">fo</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="s1">'same'</span><span class="p">),</span>
+                <span class="p">]</span>
+
+
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layer</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
+
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span>
+
+<span class="k">class</span> <span class="nc">ConvAutoencoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ConvAutoencoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">ConvEncoder</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">ConvDecoder</span><span class="p">(</span><span class="n">features</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</pre>
+<p>You will notice that the code is a bit more generic than shown on the diagram. The number of levels are variable and are controlled by the <code>features</code> variable, which takes an array of the number of features for each level.</p>
+<p>To train the model, we use the <a href="https://en.wikipedia.org/wiki/Mean_squared_error">mean squared error loss</a> between the input and output of the autoencoder, and use Adam<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup> as our optimizer of choice.</p>
+<pre class="code literal-block"><span class="n">epochs</span> <span class="o">=</span> <span class="mi">400</span>
+<span class="n">batch_size</span> <span class="o">=</span> <span class="mi">128</span>
+<span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1e-3</span>
+<span class="n">i_log</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">autoencoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">learning_rate</span><span class="p">)</span>
+<span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+<span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+    <span class="n">autoencoder</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">train_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">average_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">train_ids</span><span class="p">[</span><span class="n">bid</span><span class="o">*</span><span class="n">batch_size</span><span class="p">:(</span><span class="n">bid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">batch_size</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">batch_ids</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">x_pred</span> <span class="o">=</span> <span class="n">autoencoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x_pred</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">average_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="o">/</span> <span class="n">num_batches</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">i_log</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">autoencoder</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">val_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">x_val_pred</span> <span class="o">=</span> <span class="n">autoencoder</span><span class="p">(</span><span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+            <span class="n">val_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">x_val_pred</span> <span class="o">-</span> <span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">val_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">val_loss</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">average_loss</span><span class="p">,</span> <span class="n">val_loss</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Epoch </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> loss = </span><span class="si">{</span><span class="n">average_loss</span><span class="si">}</span><span class="s1">, val_loss = </span><span class="si">{</span><span class="n">val_loss</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</pre>
+<p>The training code is fairly standard, so there's not much to say here. We can plot the train and validation loss as a function of the epochs,
+<img src="../../files/autoencoder_loss_plot.png" style="display:block; padding:1em 0;">
+which nicely starts evening out at about 400 epochs.
+We can visualize some example outputs from the trained autoencoder to see how well it's able to encode the digits:
+<img src="../../files/autoencoder_mnist_examples.png" style="display:block; padding:1em 0;">
+On the top I drew the original MNIST characters and on the bottom, the autoencoder output. You will notice that while it's doing a quite good job at encoding the digits, some details are lost, like the small line on the number 8. I should mention, though, that how good the autoencoder is able to reconstruct the input is really dependent on how big of a model we have chosen to use, and also the size of the latent space, among others things.</p>
+<p>Given our trained autoencoder, let's now try to use it as a generative model. We first calculate the mean and standard deviation of the training dataset latent space:</p>
+<pre class="code literal-block"><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">autoencoder</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+    <span class="n">z_train</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">bid</span><span class="o">*</span><span class="n">batch_size</span><span class="p">:(</span><span class="n">bid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">batch_size</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">z_train</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="n">z_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">z_train</span><span class="p">)</span>
+    <span class="n">z_train_mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">z_train</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">z_train_std</span>  <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">z_train</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre>
+<p>Then, we generate a bunch of digits by sampling from a normal distribution with these means and standard deviations:</p>
+<pre class="code literal-block"><span class="n">n</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+    <span class="n">z_train_mean</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="n">z_train_std</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">x_pred</span> <span class="o">=</span> <span class="n">autoencoder</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+<span class="n">x_pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x_pred</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</pre>
+<p>Finally, here are some digits generated this way:
+<img src="../../files/mnist_autoencoder_random_samples.png" style="display:block; padding:1em 0;">
+Although these generated images vaguely resemble digits, we can certainly see that this method of generation is really limited. The problem, lies with our simplified sampling approach which assumes the distribution of the latent space is normal. In most cases, when training an autoencoder, the latent space is not necessarily normally distributed. Furthermore, it's not sufficient that the latent space distribution can be easily sampled, but also that it's regular, i.e. that the space between the different latent points from the training set is meaningful.</p>
+<p><img src="../../files/autoencoder_latent_scatter_plot.png" style="display:block; padding:1em 0;">
+Above you see a scatter plot of how two of the latent dimensions are correlated. The different colors encode the different digits. The distribution of points is clearly non-gaussian. Sampling from a gaussian distribution will also sample points which are far from the training set and, possibly, the decoder will not be able to interpolate these in a way that produces valid looking digits.</p>
+<p>Summarizing, the big issues of vanilla autoencoders is that the resulting latent spaces are disjoint and have discontinuities, i.e. areas of low sample density. To showcase this, I used <a href="https://en.wikipedia.org/wiki/Linear_discriminant_analysis">linear discriminant analysis</a> to reduce the latent dimensionality to two dimensions while maximizing the separation of the different categories.
+This can easily be done using scikit-learn:</p>
+<pre class="code literal-block"><span class="kn">from</span> <span class="nn">sklearn.discriminant_analysis</span> <span class="kn">import</span> <span class="n">LinearDiscriminantAnalysis</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">LinearDiscriminantAnalysis</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="c1"># Here z is the latent variables and y_val are the digit labels.</span>
+<span class="n">zr</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">y_val</span><span class="p">)</span>
+</pre>
+<p>Plotting this reduced representation, the first issue, of a disjoint latent space, is evident.
+<img src="../../files/autoencoder_latent_discriminant_analysis_scatter_plot.png" style="display:block; padding:1em 0;">
+As we shall see later, in variational autoencoders, the different categories are better "mixed", allowing for greater interpolation.</p>
+<!--
+https://towardsdatascience.com/understanding-variational-autoencoders-vaes-f70510919f73
+https://www.jeremyjordan.me/variational-autoencoders/
+https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
+https://avandekleut.github.io/vae/
+https://openreview.net/forum?id=Sy2fzU9gl
+-->
+
+<h2>Variational Autoencoder</h2>
+<p>The authors of the original VAE paper<sup id="fnref2:2"><a class="footnote-ref" href="#fn:2">2</a></sup> took a different approach at tackling the issues of generating samples \(\mathbf{x}\) from latent variable \(\mathbf{z}\). More specifically, they took a statistical approach, approximating the posterior distribution \(p(\mathbf{z}|\mathbf{x})\) using variational inference.</p>
+<p>As Welling <em>et al</em> did in their paper<sup id="fnref3:2"><a class="footnote-ref" href="#fn:2">2</a></sup>, let us define some dataset \(\mathbf{X} = \left\{ \mathbf{x}^{(i)} \right\}_{i=1}^N\) consisting of N i.i.d. samples of some continuous or discrete variable \(\mathbf{x}\), and let us assume that the data are generated by some random process, involving an unobserved continuous random variable \(\mathbf{z}\). The random (generative) process, consists of two steps: first, a value \(\mathbf{z}\) is generated from some prior distribution \(p(\mathbf{z})\), and then a value \(\mathbf{x}\) is generated from some conditional distribution \(p(\mathbf{x}|\mathbf{z})\). To implement this process, we need to calculate \(p(\mathbf{x}|\mathbf{z})\). Alternatively, we can view the problem as finding out the possible latent (hidden) variables that generated a data point. From <a href="https://en.wikipedia.org/wiki/Bayes%27_theorem">Baye's theorem</a>, we can also calculate the probability \(p(\mathbf{x}|\mathbf{z})\) as,
+\[
+p(\mathbf{x}|\mathbf{z}) = \frac{p(\mathbf{z}|\mathbf{x}) p(\mathbf{x})}{p(\mathbf{z})}
+\]
+Unfortunately, the marginal likelihood (evidence) \(p(\mathbf{x}) = \int d\mathbf{z} p(\mathbf{z}) p(\mathbf{x} | \mathbf{z}) \) is generally intractable. This is where <a href="https://en.wikipedia.org/wiki/Variational_Bayesian_methods">variational inference</a><sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup> is used to approximate the posterior \(p(\mathbf{z}|\mathbf{x})\) with another, tractable distribution, \(q(\mathbf{z}|\mathbf{x})\). We can define the distribution \(q\) as a model with parameters \(\theta\); \( q_{\theta} ( \mathbf{z}|\mathbf{x} ) \). We call this model the encoder, and we can calculate its parameters using maximum likelihood estimation. In practice, because maximizing the likelihood \(p(\mathbf{x})\) is difficult, we end up maximizing the <a href="https://en.wikipedia.org/wiki/Evidence_lower_bound">Evidence Lower Bound (ELBO)</a>:
+\[
+\log p(\mathbf{x}) \geq \mathbb{E}_{q_{\theta}(\mathbf{z}|\mathbf{x})} \left[ \log \frac{p(\mathbf{x},\mathbf{z})}{q_{\theta}(\mathbf{z}|\mathbf{x})} \right]
+\]
+The above can be further estimated to be:
+\[
+\mathbb{E}_{q_{\theta}(\mathbf{z}|\mathbf{x})} \left[ \log \frac{p(\mathbf{x},\mathbf{z})}{q_{\theta}(\mathbf{z}|\mathbf{x})} \right] =
+\mathbb{E}_{q_{\theta}(\mathbf{z}|\mathbf{x})} \left[ \log p_{\phi}(\mathbf{x} | \mathbf{z}) \right] - D_{KL}(q_{\theta}(\mathbf{z}|\mathbf{x}) \| p(\mathbf{z}))
+\]
+where \(D_{KL}\) is the <a href="https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence">Kullback-Leibler (KL) divergence</a>. Note that we substituted \(p(\mathbf{x} | \mathbf{z})\) with a deterministic model with parameters \(\phi\), which we call the decoder.
+The first term, above, measures how well the input is reconstructed, just as in the autoencoder, while the second term measures how similar the learned variational distribution is to a prior belief held over latent variables. Minimizing this term encourages the encoder to actually learn a distribution rather than collapse into an ensemble of point functions.</p>
+<p>When the input \(\mathbf{x}\) takes continuous values, both the evidence \(p(\mathbf{x})\) and the likelihood \(p(\mathbf{x} | \mathbf{z})\) are assumed to be Gaussian. This leads to the log likelihood term in the maximum likelihood estimation to take the form of the square distance between the input \(\mathbf{x}\) and the reconstructed input \(\mathbf{x}'\) generated by the decoder. Specifically, we assume,
+\[
+\begin{split}
+p(\mathbf{z} | \mathbf{x}) &amp;\sim \mathcal{N}(\mu_{\theta}(\mathbf{x}), \sigma_{\theta}^2(\mathbf{x}))\\
+p(\mathbf{z}) &amp;\sim \mathcal{N}(0, I)
+\end{split}
+\]
+Finally, using these assumptions, the loss using the maximum likelihood estimation reduced to:
+\[
+L_{\theta,\phi}(x) = \mathbb{E}_{\mathbf{z} \sim q_\phi} \| \mathbf{x} - \mathbf{x}'\|_2^2 - \frac{1}{2}\sum_{i=1}^d \left( \log \sigma_{i,\theta}^2(\mathbf{x}) + 1- \mu_{i,\theta}^2(\mathbf{x}) - \sigma_{i,\theta}^2(\mathbf{x}) \right)
+\]
+where \(d\) is the latent dimension. For a derivation of the KL divergence between two Gaussian distributions, check <a href="https://mr-easy.github.io/2020-04-16-kl-divergence-between-2-gaussian-distributions/">this blog post</a>.</p>
+<p>Contrary to the vanilla autoencoder, the encoder of the VAE returns a distribution, \(p(\mathbf{z} | \mathbf{x}) \sim \mathcal{N}(\mu_{\theta}(\mathbf{x}), \sigma_{\theta}^2(\mathbf{x}))\). However, backpropagation cannot propagate gradients through the sampling of the distribution if we sample it naively. Instead, we use a trick know as reparametrization trick, and instead sample from a standard gaussian and scale and translate it with the mean and standard deviation:
+\[
+\mathbf{z} = \mu_\theta(\mathbf{x}) s + \sigma_\theta(\mathbf{x}) \quad s \sim \mathcal{N}(0, I)
+\]
+which enables the backpropagation algorithm to propagate the gradients through the nodes generating the mean and standard deviation. These are generated from the encoder model; instead of generating the latent variable \(\mathbf{z}(\mathbf{x})\), the encoder model instead generates a mean \(\mu_\theta(\mathbf{x})\), and standard deviation \(\sigma_\theta(\mathbf{x})\).</p>
+<p>The decoder model we use here is identical to the one we used for the simple autoencoder. The encoder only varies in the number of latent dimensions. It produces twice as many, half of which are representing the mean and the other half the standard deviation.</p>
+<pre class="code literal-block"><span class="n">encoder</span> <span class="o">=</span> <span class="n">ConvEncoder</span><span class="p">(</span><span class="n">features</span> <span class="o">+</span> <span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="n">latent_channels</span><span class="p">,])</span>
+<span class="n">decoder</span> <span class="o">=</span> <span class="n">ConvDecoder</span><span class="p">([</span><span class="n">latent_channels</span><span class="p">,]</span> <span class="o">+</span> <span class="n">features</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</pre>
+<p>Sampling a latent variable from the encoder is done as follows,</p>
+<pre class="code literal-block"><span class="n">mu_sigma</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">mu</span>    <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,:</span><span class="n">latent_channels</span><span class="p">,:,:]</span>
+<span class="n">sigma</span> <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,</span><span class="n">latent_channels</span><span class="p">:,:,:]</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">mu</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="n">z</span> <span class="o">=</span> <span class="n">s</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">+</span> <span class="n">mu</span>
+</pre>
+<p>With this, we have all ingredients to train a VAE. The training code is very similar to the one we wrote for the autoencoder, but using the new sampling of the latent variable, z.</p>
+<pre class="code literal-block"><span class="n">i_log</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+<span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+    <span class="n">encoder</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">decoder</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">train_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">average_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">mean_rec</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">mean_kl</span>  <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">train_ids</span><span class="p">[</span><span class="n">bid</span><span class="o">*</span><span class="n">batch_size</span><span class="p">:(</span><span class="n">bid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">batch_size</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">batch_ids</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">mu_sigma</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">mu</span>    <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,:</span><span class="n">latent_channels</span><span class="p">,:,:]</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,</span><span class="n">latent_channels</span><span class="p">:,:,:]</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">mu</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">s</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">+</span> <span class="n">mu</span>
+        <span class="n">x_pred</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+        <span class="n">reconstruction_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x_pred</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">sigma2</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">sigma2</span> <span class="o">+</span> <span class="n">mu</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">sigma2</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span>
+        <span class="n">kl_loss</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">kl_loss</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">reconstruction_loss</span> <span class="o">-</span> <span class="n">kl_loss</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">average_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">mean_rec</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">reconstruction_loss</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">mean_kl</span>  <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">kl_loss</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">i_log</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">encoder</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">decoder</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">mu_sigma</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span>
+            <span class="n">mu</span>    <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,:</span><span class="n">latent_channels</span><span class="p">,:,:]</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,</span><span class="n">latent_channels</span><span class="p">:,:,:]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">mu</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">s</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">+</span> <span class="n">mu</span>
+            <span class="n">x_val_pred</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+            <span class="n">reconstruction_loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_val_pred</span> <span class="o">-</span> <span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">reconstruction_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">reconstruction_loss</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">sigma2</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">**</span><span class="mi">2</span>
+            <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">sigma2</span> <span class="o">+</span> <span class="n">mu</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">sigma2</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span>
+            <span class="n">kl_loss</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">kl_loss</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">val_loss</span> <span class="o">=</span> <span class="n">reconstruction_loss</span> <span class="o">-</span> <span class="n">kl_loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+            <span class="n">val_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">val_loss</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">average_loss</span> <span class="o">/=</span> <span class="n">num_batches</span>
+        <span class="n">mean_rec</span>     <span class="o">/=</span> <span class="n">num_batches</span>
+        <span class="n">mean_kl</span>      <span class="o">/=</span> <span class="n">num_batches</span>
+        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">average_loss</span><span class="p">,</span> <span class="n">val_loss</span><span class="p">,</span> <span class="n">mean_rec</span><span class="p">,</span> <span class="n">mean_kl</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Epoch </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> loss = </span><span class="si">{</span><span class="n">average_loss</span><span class="si">}</span><span class="s1"> (</span><span class="si">{</span><span class="n">mean_rec</span><span class="si">}</span><span class="s1"> + </span><span class="si">{</span><span class="n">mean_kl</span><span class="si">}</span><span class="s1">), val_loss = </span><span class="si">{</span><span class="n">val_loss</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</pre>
+<p>The additional loss term will no doubt hurt the network's ability to autoencode the input accurately. Let's plot some examples:
+<img src="../../files/vae_mnist_examples.png" style="display:block; padding:1em 0;">
+Indeed, the reconstructions, on the bottom, have less detail, and in some cases, like the 4th digit from the left, it could even be mistaken for a 3.
+Nonetheless, our goal in training the VAE is to generate more realistic looking digits, even though the network's ability to autoencode digits is indicative of how good generated digits could look like. 
+So let's generate some digits and see if our efforts bare fruit!</p>
+<pre class="code literal-block"><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="mi">8</span><span class="p">,</span> <span class="n">latent_channels</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">x_pred</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+    <span class="n">x_pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x_pred</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</pre>
+<p>The digits are generated by sampling a latent variable randomly from the standard normal distribution and passing the latent to the decoder.
+<img src="../../files/mnist_vae_random_samples.png" style="display:block; padding:1em 0;">
+Plotting the random samples, we see a striking improvement compared to the regular autoencoder, even though it's still far from perfect.</p>
+<p>It's once more interesting to try understand how the latent space looks like, by using linear discriminant analysis to reduce the latent dimensionality to two dimensions.
+<img src="../../files/vae_latent_discriminant_analysis_scatter_plot.png" style="display:block; padding:1em 0;">
+As can be seen in the plot, each digit's point cloud is much more spread out, with the clouds of the different points blending with each other. We can also clearly see that digits that look like each other, such as 0 and 6.</p>
+<h2>Conclusion</h2>
+<p>In this blog post, we set out to learn more about a variational autoencoders (VAEs). This, because it's a base component of what makes latent diffusion models tick. To get a better understanding of the latent space, we created a latent space for the MNIST dataset using a simple autoencoder. Even though we found out that autoencoders are lousy at MNIST digit generation, it gave us insights into how we would like to normalize the latent space. VAEs assume the latent variables follow a standard normal probability distribution, and using some math and some additional assumptions, we get a recipe for training and sampling a VAE and the decoder and encoder can be seen as the posterior and likelihood of the latent given a MNIST sample. The digits generated with the VAE are very much improved compared to the simple autoencoder, but they are not perfect. Let's see what we can do with the latent diffusion model in the next post. For now, I invite you to play around with the <a href="https://colab.research.google.com/drive/18UReo17EOUNYoEqVwazgS-JgXjbgOKmr">notebook</a> for this post.</p>
+<div class="footnote">
+<hr>
+<ol>
+<li id="fn:1">
+<p><a href="https://arxiv.org/abs/1412.6980">D. P. Kingma, J. L. Ba -- Adam: A method for stochastic optimization</a> <a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">↩</a></p>
+</li>
+<li id="fn:2">
+<p><a href="https://arxiv.org/abs/1312.6114">D. P. Kingma, M. Welling, Auto-Encoding Variational Bayes</a> <a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">↩</a><a class="footnote-backref" href="#fnref2:2" title="Jump back to footnote 2 in the text">↩</a><a class="footnote-backref" href="#fnref3:2" title="Jump back to footnote 2 in the text">↩</a></p>
+</li>
+<li id="fn:3">
+<p><a href="https://arxiv.org/abs/1601.00670">D. M. Blei, A. Kucukelbir, J. D. McAuliffe, Variational Inference: A Review for Statisticians</a> <a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">↩</a></p>
+</li>
+</ol>
+</div>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="../latent-diffusion-series-mnist-classifier/" rel="prev" title="Latent Diffusion Series: MNIST Classifier">Previous post</a>
+            </li>
+        </ul></nav></aside><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha384-3lJUsx1TJHt7BA4udB5KPnDrlkO8T6J6v/op7ui0BbCjvZ9WqV4Xm6DTP6kQ/iBH" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});
+        </script></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>

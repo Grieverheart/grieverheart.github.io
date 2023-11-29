@@ -15,6 +15,7 @@
 <!--[if lt IE 9]><script src="../../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
 <meta name="author" content="Nick Tasios">
 <link rel="prev" href="../simulating-a-crt-tv-with-c%2B%2B-and-opengl.html" title="Simulating a CRT TV with C++ and OpenGL" type="text/html">
+<link rel="next" href="../latent-diffusion-series-variational-autoencoder/" title="Latent Diffusion Series: Variational Autoencoder (VAE)" type="text/html">
 <meta property="og:site_name" content="NICK TASIOS">
 <meta property="og:title" content="Latent Diffusion Series: MNIST Classifier">
 <meta property="og:url" content="http://www.nicktasios.nl/posts/latent-diffusion-series-mnist-classifier/">
@@ -65,7 +66,7 @@
     <div>
 <p>In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In this first post, we will train a simple classifier to classify MNIST digits. This will later be used for scoring the quality of the generated digits using a variant of the so-called <a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance">Fréchet inception distance (FID)</a>.  <!-- TEASER_END --> For the other posts, please look below:</p>
 <ol>
-<li>MNIST Classifier</li>
+<li><strong>MNIST Classifier</strong></li>
 <li>Variational Autoencoder (VAE)</li>
 <li>Latent Diffusion Model</li>
 </ol>
@@ -244,7 +245,7 @@ We see that the first 2 activations are mostly inactive (which is a waste of mem
 So, although we cannot say that the distributions are exactly normally distributed, they are really close. To be honest, I'm not sure what the impact of this is when assessing the quality of generated numbers.</p>
 <h2>Conclusion</h2>
 <p>Even though classifiers, especially MNIST ones, are simple and the topic has been quite exhausted, it is worth having a thorough look at them. The motivation for this was to assess the quality of generated numbers of the diffusion model we are going to build. By looking at the activations, we got a better understanding how the classifier works, and found that the activations are close to normally distributed, something that is assumed when calculating the FID.</p>
-<p>I invite you to play around with the <a href="https://colab.research.google.com/drive/1j8ddAcEeCN02fBP8CE-giMNwowc7cjIw?usp=share_link">notebook</a>, and read the next blog (when it's ready).</p>
+<p>I invite you to play around with the <a href="https://colab.research.google.com/drive/1j8ddAcEeCN02fBP8CE-giMNwowc7cjIw">notebook</a>, and read the next blog (when it's ready).</p>
 <div class="footnote">
 <hr>
 <ol>
@@ -261,6 +262,9 @@ So, although we cannot say that the distributions are exactly normally distribut
     <aside class="postpromonav"><nav><ul class="pager hidden-print">
 <li class="previous">
                 <a href="../simulating-a-crt-tv-with-c%2B%2B-and-opengl.html" rel="prev" title="Simulating a CRT TV with C++ and OpenGL">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../latent-diffusion-series-variational-autoencoder/" rel="next" title="Latent Diffusion Series: Variational Autoencoder (VAE)">Next post</a>
             </li>
         </ul></nav></aside></article></main>
 </div>
