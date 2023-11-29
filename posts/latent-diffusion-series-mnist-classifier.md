@@ -12,7 +12,7 @@
 
 In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In this first post, we will train a simple classifier to classify MNIST digits. This will later be used for scoring the quality of the generated digits using a variant of the so-called [Fréchet inception distance (FID)](https://en.wikipedia.org/wiki/Fréchet_inception_distance).  <!-- TEASER_END --> For the other posts, please look below:
 
-1. MNIST Classifier
+1. **MNIST Classifier**
 2. Variational Autoencoder (VAE)
 3. Latent Diffusion Model
 
@@ -221,7 +221,7 @@ So, although we cannot say that the distributions are exactly normally distribut
 
 Even though classifiers, especially MNIST ones, are simple and the topic has been quite exhausted, it is worth having a thorough look at them. The motivation for this was to assess the quality of generated numbers of the diffusion model we are going to build. By looking at the activations, we got a better understanding how the classifier works, and found that the activations are close to normally distributed, something that is assumed when calculating the FID.
 
-I invite you to play around with the [notebook](https://colab.research.google.com/drive/1j8ddAcEeCN02fBP8CE-giMNwowc7cjIw?usp=share_link), and read the next blog (when it's ready).
+I invite you to play around with the [notebook](https://colab.research.google.com/drive/1j8ddAcEeCN02fBP8CE-giMNwowc7cjIw), and read the next blog (when it's ready).
 
 [^1]: [A. Byerly, T. Kalganova, I. Dear -- No Routing Needed Between Capsules](https://arxiv.org/abs/2001.09136v6)
 [^2]: [D. P. Kingma, J. L. Ba -- Adam: A method for stochastic optimization](https://arxiv.org/abs/1412.6980)
