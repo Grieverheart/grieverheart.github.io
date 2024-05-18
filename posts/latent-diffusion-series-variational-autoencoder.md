@@ -268,7 +268,7 @@ where \\(d\\) is the latent dimension. For a derivation of the KL divergence bet
 
 Contrary to the vanilla autoencoder, the encoder of the VAE returns a distribution, \\(p(\mathbf{z} | \mathbf{x}) \sim \mathcal{N}(\mu\_{\theta}(\mathbf{x}), \sigma\_{\theta}^2(\mathbf{x}))\\). However, backpropagation cannot propagate gradients through the sampling of the distribution if we sample it naively. Instead, we use a trick know as reparametrization trick, and instead sample from a standard gaussian and scale and translate it with the mean and standard deviation:
 \\[
-\mathbf{z} = \mu\_\theta(\mathbf{x}) s + \sigma\_\theta(\mathbf{x}) \quad s \sim \mathcal{N}(0, I)
+\mathbf{z} = \mu\_\theta(\mathbf{x}) + s \sigma\_\theta(\mathbf{x}) \quad s \sim \mathcal{N}(0, I)
 \\]
 which enables the backpropagation algorithm to propagate the gradients through the nodes generating the mean and standard deviation. These are generated from the encoder model; instead of generating the latent variable \\(\mathbf{z}(\mathbf{x})\\), the encoder model instead generates a mean \\(\mu\_\theta(\mathbf{x})\\), and standard deviation \\(\sigma\_\theta(\mathbf{x})\\).
 
