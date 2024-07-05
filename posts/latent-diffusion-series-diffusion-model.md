@@ -26,9 +26,12 @@ In this post I will discuss [Diffusion Models](https://en.wikipedia.org/wiki/Dif
 I briefly introduced diffusion models in the [first post](/posts/latent-diffusion-series-mnist-classifier), but here I'll give a more extensive overview. As I mentioned there, diffusion models were first developed as [generative models](https://en.wikipedia.org/wiki/Generative_model) for generating samples that follows the original dataset distribution. The goal of a generative models is to learn to model the true data distribution from observed samples, so that generating new samples is as simple as sampling the learned distribution. Diffusion models achieve this by corrupting the dataset with progressively larger amounts of noise, leading to samples with pure noise, and training a set of probabilistic models to reverse the corruption step in the probabilistic sense. This reverse problem is made tractable by using knowledge of the functional form of the reverse distributions.
 <img src="/files/mnist_corruption.png" style="display:block; padding:1em 0;"/>
 
-When I first researched diffusion models, I started with the original paper by Sohl-Dicksten *et al*, 'Deep Unsupervised Learning using Nonequilibrium Thermodynamics'[^1], which as the name suggests, is inspired by non-equilibrium statistical physics. I spent some time with this paper, but I quickly realised that it's not the best paper to read as an introduction to diffusion models. It doesn't make it easy to understand how to actually build and train a diffusion model. Fortunately, diffusion models are old enough by now that later papers have made various simplifications and have managed to give easier to understand explanations. On the other hand, because diffusion models have been derived in a number of different ways; from stochastic differential equations to score-based models, it can make it frustrating to understand the relationship between the different derivations, and can lead to mixing up concepts. While researching for the easiest way to explain diffusion models, I stumbled upon a paper, 'Iterative α-(de)Blending: a Minimalist Deterministic Diffusion Model' [^3], I thought that this might be the best candidate, but something bothered me about it; I was missing the motivation behind the derivation. In the end I found this motivation in stochastic interpolants [^4] which describes the diffusion process as a way of efficiently moving through the flow field defined by probability distribution of the intermediate steps. Stochastic interpolants, as you might guess is not easy to understand, especially if you are not familiar with [measure theory](https://en.wikipedia.org/wiki/Measure_(mathematics)). In the end, I decided to gloss over the theory as it would become too long of a discussion, but might be nice as a bonus blog post. Even though the theory can be non-intuitive, as will shall see, the implementation is really simple. If you are interested to learn more about diffusion methods and alternative approaches, I suggest you start by the amazing [blog post by Miika Aittala](https://developer.nvidia.com/blog/generative-ai-research-spotlight-demystifying-diffusion-based-models/), and then check the posts by [Yang Song](https://yang-song.net/blog/2021/score/), [Lilian Weng](https://lilianweng.github.io/posts/2021-07-11-diffusion-models/), and [Sander Dieleman](https://sander.ai/2023/07/20/perspectives.html).
+When I first researched diffusion models, I started with the original paper by Sohl-Dicksten *et al*, 'Deep Unsupervised Learning using Nonequilibrium Thermodynamics'[^1], which as the name suggests, is inspired by non-equilibrium statistical physics. I spent some time with this paper, but I quickly realised that it's not the best paper to read as an introduction to diffusion models. It doesn't make it easy to understand how to actually build and train a diffusion model. Fortunately, diffusion models are old enough by now that later papers have made various simplifications and have managed to give easier to understand explanations. On the other hand, because diffusion models have been derived in a number of different ways; from stochastic differential equations to score-based models, it can make it frustrating to understand the relationship between the different derivations, and can lead to mixing up concepts. While researching for the easiest way to explain diffusion models, I stumbled upon a paper, 'Iterative α-(de)Blending: a Minimalist Deterministic Diffusion Model' [^3], I thought that this might be the best candidate, but something bothered me about it; I was missing the motivation behind the derivation. In the end I found this motivation in stochastic interpolants [^4] which describes the diffusion process as a way of efficiently moving through the flow field defined by probability distribution of the intermediate steps. Stochastic interpolants, as you might have guessed, is not easy to understand, especially if you are not familiar with certain topics in mathematics such as [measure theory](https://en.wikipedia.org/wiki/Measure_(mathematics)). Thus, I decided that in this blog post I would concentrate on briefly explaining the paper by Ho *et al* titled 'Denoising Diffusion Probabilistic Models' (DDPM), which is also referenced in the seminal LDM paper [^5], and leave the above discussion open for a bonus blog post in the near future.
 
-As we mentioned, the diffusion process consists of a number of steps, N, which gradually add noise:
+If you are interested to learn more about diffusion methods and alternative approaches, I suggest you start by the amazing [blog post by Miika Aittala](https://developer.nvidia.com/blog/generative-ai-research-spotlight-demystifying-diffusion-based-models/), and then check the posts by [Yang Song](https://yang-song.net/blog/2021/score/), [Lilian Weng](https://lilianweng.github.io/posts/2021-07-11-diffusion-models/), and [Sander Dieleman](https://sander.ai/2023/07/20/perspectives.html).
+
+<!-- theory starts from here -->
+As I mentioned, the diffusion process consists of a number of steps, N, which gradually add noise:
 \\[
 \mathbf{x}\_{t+1} = \theta\_{t+1} \mathbf{x}\_t + \phi\_{t+1} \mathbf{\epsilon}, \quad \mathbf{\epsilon} \in \mathcal{N}(0,1)
 \tag{1}
@@ -56,6 +59,7 @@ The diffusion process can be seen as interpolating between the data and noise, a
 
 Now, say we know \\(\mathbf{x}\_{t+1}\\) in equation (1), above, then we can train a neural network to either predict \\(\mathbf{x}\_t\\) directly which would cause the model to learn the distribution of \\(\mathbf{x}\_t\\) given \\(\mathbf{x}\_{t+1}\\), or we can train it to learn the noise sample \\(\mathbf{\epsilon}\\). The last approach is the one followed by most papers such as Ho *et al* [^8], but a few more could be considered; one possibility could be to predict \\(\mathbf{x}\_0\\) itself from \\(\mathbf{x}\_{t+1}\\), but that would be to hard for the model to learn, so instead you could then use equation (2) again to get a new \\(\mathbf{x}\_t\\). 
 
+<!-- code starts from here -->
 Let's now jump right into it and implement the training of a (denoising) neural network that predicts the noise sample \\(\epsilon\\), and then, using equation (1), iteratively calculate \\(\mathbf{x}\_t\\) until we reach \\(\mathbf{x}\_0\\). Let's first start by implementing equation (2) in the forward direction, i.e., given sample \\(\mathbf{x}\_0\\), produce a noisy result \\(\mathbf{x}\_t\\). As you might imagine, the code is really simple, so let's sample a few digits from the MNIST validation set and visualize the diffusion process, reproducing the figure above:
 ```python
 time_steps = 1000
@@ -168,27 +172,6 @@ DDPM we should stick with that, but I think introducing the alpha-(de)blending
 is really interesting. Not only can we do fun things like moving along the path
 based on the blending/deblending, but also make a connection to flow matching
 and stochastic interpolants.
--->
-
-<!-- 
-Now, allow me to go on a tangent for a moment, and mention that we can derive the following from (2),
-\\[
-\begin{split}
-\mathbf{x}\_{t+1} &= \mathbf{x}\_0 (\bar{\theta}\_t + \bar{\phi}\_t) + \bar{\phi}\_t (\mathbf{\epsilon} - \mathbf{x}\_0)\\\\
-\mathbf{x}\_{t} &= \mathbf{x}\_0 (\bar{\theta}\_{t-1} + \bar{\phi}\_{t-1}) + \bar{\phi}\_{t-1} (\mathbf{\epsilon} - \mathbf{x}\_0)\\\\
-\mathbf{x}\_{t+1} - \mathbf{x}\_{t} &= \mathbf{x}\_0 (\bar{\theta}\_{t} + \bar{\phi}\_{t} - \bar{\theta}\_{t-1} - \bar{\phi}\_{t-1}) + (\bar{\phi}\_t - \bar{\phi}\_{t-1}) (\mathbf{\epsilon} - \mathbf{x}\_0)
-\end{split}
-\\]
-which, as long as \\(\bar{\theta}\_{t} + \bar{\phi}\_{t} = \bar{\theta}\_{t-1} + \bar{\phi}\_{t-1}\\), allows us to predict \\(\mathbf{x}\_t\\) by learning the difference \\(\mathbf{\epsilon} - \mathbf{x}\_0\\). This is the approach followed by Heitz *et al* [^3], for \\(\bar{\theta}\_t = 1 - \bar{\phi}\_t\\). Please check Aittala *et al* [^9] for a extensive exploration of the design space.
-
--->
-
-<!--
-\begin{align*}
-\mathbf{x}_{t+1} &= \theta_t \mathbf{x}_t + \phi_t \mathbf{\epsilon}\\
-\mathbf{x}_{t+1} &= (\bar{\theta}_t / \bar{\theta}_{t-1}) \mathbf{x}_t + (\bar{\phi}_t - \bar{\phi}_{t-1}) \mathbf{\epsilon}\\
-\mathbf{x}_t &= (\bar{\theta}_{t-1} / \bar{\theta}_t) \left(\mathbf{x}_{t+1} - (\bar{\phi}_t - \bar{\phi}_{t-1}) \mathbf{\epsilon}\right)
-\end{align}
 -->
 
 
