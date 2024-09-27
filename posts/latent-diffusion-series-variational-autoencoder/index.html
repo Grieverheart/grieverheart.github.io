@@ -15,6 +15,7 @@
 <!--[if lt IE 9]><script src="../../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
 <meta name="author" content="Nick Tasios">
 <link rel="prev" href="../latent-diffusion-series-mnist-classifier/" title="Latent Diffusion Series: MNIST Classifier" type="text/html">
+<link rel="next" href="../latent-diffusion-series-diffusion-model/" title="Latent Diffusion Series: Latent Diffusion Model" type="text/html">
 <meta property="og:site_name" content="NICK TASIOS">
 <meta property="og:title" content="Latent Diffusion Series: Variational Autoencoder (VAE)">
 <meta property="og:url" content="http://www.nicktasios.nl/posts/latent-diffusion-series-variational-autoencoder/">
@@ -300,7 +301,7 @@ L_{\theta,\phi}(x) = \mathbb{E}_{\mathbf{z} \sim q_\phi} \| \mathbf{x} - \mathbf
 where \(d\) is the latent dimension. For a derivation of the KL divergence between two Gaussian distributions, check <a href="https://mr-easy.github.io/2020-04-16-kl-divergence-between-2-gaussian-distributions/">this blog post</a>.</p>
 <p>Contrary to the vanilla autoencoder, the encoder of the VAE returns a distribution, \(p(\mathbf{z} | \mathbf{x}) \sim \mathcal{N}(\mu_{\theta}(\mathbf{x}), \sigma_{\theta}^2(\mathbf{x}))\). However, backpropagation cannot propagate gradients through the sampling of the distribution if we sample it naively. Instead, we use a trick know as reparametrization trick, and instead sample from a standard gaussian and scale and translate it with the mean and standard deviation:
 \[
-\mathbf{z} = \mu_\theta(\mathbf{x}) s + \sigma_\theta(\mathbf{x}) \quad s \sim \mathcal{N}(0, I)
+\mathbf{z} = \mu_\theta(\mathbf{x}) + s \sigma_\theta(\mathbf{x}) \quad s \sim \mathcal{N}(0, I)
 \]
 which enables the backpropagation algorithm to propagate the gradients through the nodes generating the mean and standard deviation. These are generated from the encoder model; instead of generating the latent variable \(\mathbf{z}(\mathbf{x})\), the encoder model instead generates a mean \(\mu_\theta(\mathbf{x})\), and standard deviation \(\sigma_\theta(\mathbf{x})\).</p>
 <p>The decoder model we use here is identical to the one we used for the simple autoencoder. The encoder only varies in the number of latent dimensions. It produces twice as many, half of which are representing the mean and the other half the standard deviation.</p>
@@ -417,6 +418,9 @@ As can be seen in the plot, each digit's point cloud is much more spread out, wi
     <aside class="postpromonav"><nav><ul class="pager hidden-print">
 <li class="previous">
                 <a href="../latent-diffusion-series-mnist-classifier/" rel="prev" title="Latent Diffusion Series: MNIST Classifier">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../latent-diffusion-series-diffusion-model/" rel="next" title="Latent Diffusion Series: Latent Diffusion Model">Next post</a>
             </li>
         </ul></nav></aside><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha384-3lJUsx1TJHt7BA4udB5KPnDrlkO8T6J6v/op7ui0BbCjvZ9WqV4Xm6DTP6kQ/iBH" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
         MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});

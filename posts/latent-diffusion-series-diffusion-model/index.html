@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Latent Diffusion Series: Latent Diffusion Model | NICK TASIOS</title>
+<link href="../../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/latent-diffusion-series-diffusion-model/">
+<!--[if lt IE 9]><script src="../../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="../latent-diffusion-series-variational-autoencoder/" title="Latent Diffusion Series: Variational Autoencoder (VAE)" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Latent Diffusion Series: Latent Diffusion Model">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/latent-diffusion-series-diffusion-model/">
+<meta property="og:description" content="In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In the third, and last, post, ">
+<meta property="og:image" content="http://www.nicktasios.nl/files/mnist_corruption_bg.png">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2024-09-27T15:10:30+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../../projects/">Projects</a></li>
+                <li><a href="../">Blog</a></li>
+                <li><a href="../../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="." class="u-url">Latent Diffusion Series: Latent Diffusion Model</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="." rel="bookmark"><time class="published dt-published" datetime="2024-09-27T15:10:30+02:00" itemprop="datePublished" title="2024-09-27 15:10">2024-09-27 15:10</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In the third, and last, post, we will finally build and train a latent diffusion model which will be trained to generate random MNIST digits.<!-- TEASER_END --> For the other posts, please look below:</p>
+<ol>
+<li><a href="../latent-diffusion-series-mnist-classifier">MNIST Classifier</a></li>
+<li><a href="../latent-diffusion-series-variational-autoencoder">Variational Autoencoder (VAE)</a></li>
+<li><strong>Latent Diffusion Model</strong></li>
+</ol>
+<p>The links will become active as soon as they the posts are completed. Even though this blog post is part of a series, I will try my best to write it in such a way that it's not required to have read the previous blog posts.</p>
+<p>In this post I will discuss <a href="https://en.wikipedia.org/wiki/Diffusion_model">Diffusion Models</a> and more specifically, Latent Diffusion Models, which are trained to denoise latent representations. This enables us to generate anything we have a large dataset of by sampling noise from a normal distributions and denoising it using a diffusion model trained for this task. Here we will build a latent diffusion model using components from the previous two posts and train it on the MNIST dataset, and compare the results we got when we generated digits using a VAE. If you'd like a bit more about the MNIST dataset or VAEs, please look at the previous blog posts linked above. I have created a Python <a href="https://colab.research.google.com/drive/1dNEr_kQPMkDU6SYZ_cqoizh3SKuL6ind">notebook on Colab</a>, which you can use to follow along and experiment with this post's code.</p>
+<h2>Diffusion Model</h2>
+<p>I briefly introduced diffusion models in the <a href="../latent-diffusion-series-mnist-classifier">first post</a>, but here I'll give a more extensive overview. As I mentioned there, diffusion models were first developed as <a href="https://en.wikipedia.org/wiki/Generative_model">generative models</a> for generating samples that follows the original dataset distribution. The goal of a generative models is to learn to model the true data distribution from observed samples, so that generating new samples is as simple as sampling the learned distribution. Diffusion models achieve this by corrupting the dataset with progressively larger amounts of noise, leading to samples with pure noise, and training a set of probabilistic models to reverse the corruption step in the probabilistic sense. This reverse problem is made tractable by using knowledge of the functional form of the reverse distributions.
+<img src="../../files/mnist_corruption.png" style="display:block; padding:1em 0;"></p>
+<p>When I first researched diffusion models, I started with the original paper by Sohl-Dicksten <em>et al</em>, 'Deep Unsupervised Learning using Nonequilibrium Thermodynamics'<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>, which as the name suggests, is inspired by non-equilibrium statistical physics. I spent some time with this paper, but I quickly realised that it's not the best paper to read as an introduction to diffusion models. It doesn't make it easy to understand how to actually build and train a diffusion model. Fortunately, diffusion models are old enough by now that later papers have made various simplifications and have managed to give easier to understand explanations. On the other hand, because diffusion models have been derived in a number of different ways; from stochastic differential equations to score-based models<sup id="fnref:6"><a class="footnote-ref" href="#fn:6">6</a></sup>, it can make it frustrating to understand the relationship between the different derivations, and can lead to mixing up concepts. While researching for the easiest way to explain diffusion models, I stumbled upon a paper, 'Iterative α-(de)Blending: a Minimalist Deterministic Diffusion Model' <sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup>, I thought that this might be the best candidate, but something bothered me about it; I was missing the motivation behind the derivation. In the end I found this motivation in stochastic interpolants <sup id="fnref:4"><a class="footnote-ref" href="#fn:4">4</a></sup> which describes the diffusion process as a way of efficiently moving through the flow field defined by probability distribution of the intermediate steps. Stochastic interpolants, as you might have guessed, is also not that easy to understand, especially if you are not familiar with certain topics in mathematics such as <a href="https://en.wikipedia.org/wiki/Measure_(mathematics)">measure theory</a> — although it migh be a nice challenge to make it understandable to a broader audience. Thus, I decided that in this blog post I would concentrate on briefly explaining the paper by Ho <em>et al</em> titled 'Denoising Diffusion Probabilistic Models' (DDPM), which is also the one referenced in the seminal LDM paper <sup id="fnref:5"><a class="footnote-ref" href="#fn:5">5</a></sup>, and leave the above discussion open for a blog post in the near future.</p>
+<p>If you are interested to learn more about diffusion methods and alternative approaches, I suggest you start by the amazing <a href="https://developer.nvidia.com/blog/generative-ai-research-spotlight-demystifying-diffusion-based-models/">blog post by Miika Aittala</a>, and then check the posts by <a href="https://yang-song.net/blog/2021/score/">Yang Song</a>, <a href="https://lilianweng.github.io/posts/2021-07-11-diffusion-models/">Lilian Weng</a>, and <a href="https://sander.ai/2023/07/20/perspectives.html">Sander Dieleman</a>.</p>
+<!-- theory starts from here -->
+<p>Let us now describe the diffusion process which diffusion models learn to reverse. Given a dataset with distribution \( q(x) \), the diffusion process defines a sequence of steps, N, in which samples of the distribution at step \(t\) are mapped to a new distribution at step \(t+1\) by adding Gaussian noise to them. We refer to the samples in each step of the distribution as \(x_t\) and the corresponding distributions as \(q(x_t)\), with \(x_0\) referring to the original data distribution. We can write:
+\[
+\begin{align}
+\tag{1}
+\label{eq:noise_process}
+q(\mathbf{x}_t | \mathbf{x}_{t-1}) &amp;= \mathcal{N}(\mathbf{x}_t; \sqrt{1 - \beta_t} \mathbf{x}_{t-1}, \beta_t \mathbf{I})\\
+q(\mathbf{x}_1, \mathbf{x}_2,...,\mathbf{x}_T | \mathbf{x}_0) &amp;= \prod_{t=1}^T q(\mathbf{x}_t | \mathbf{x}_{t-1})
+\end{align}
+\]
+\(\beta_t \in (0,1)\), here is called the variance schedule and controls how much noise to add at each step. For large T, and assuming \(\beta_T = 1\), you will see that the probability distribution approaches the standard Gaussian distribution. The fact that a large \(T\) is needed is a pain point of standard diffusion models, and something we might discuss in a next blog post.
+The diffusion process we just defined is also known as a <a href="https://en.wikipedia.org/wiki/Stochastic_process">stochastic process</a>, which is really just a sequence of random variables. Also note from equation \eqref{eq:noise_process}, that the distribution of the data at step \(t\) depend only on the previous step. This is a property know as a <a href="https://en.wikipedia.org/wiki/Markov_property">Markov property</a> and such processes are known as <a href="https://en.wikipedia.org/wiki/Markov_chain">Markov Chains</a>. The process might also remind you of the VAE we studied previously; diffusion models can be seen as stacked VAEs with fixed latent dimension across timesteps, and at each timestep the latent encoder is not learned but simply a Gaussian centered at the latent variable of the previous step. A significan aspect of diffusion models that allows us to train a model efficiently is the fact that \( \mathbf{x}_t \) can be sampled at arbitrary timesteps \(t\),
+\[
+\tag{2}
+\label{eq:forward_distribution}
+q(\mathbf{x}_t | \mathbf{x}_0) = \mathcal{N}(\mathbf{x}_t; \sqrt{\bar{\alpha}_t} \mathbf{x}_0, (1 - \bar{\alpha}_t) \mathbf{I})
+\]
+where \(\bar{\alpha}\) are derived from the variance schedule,
+\[
+\bar{\alpha}_t = \prod_{s=1}^t \alpha_s = \prod_{s=1}^t (1 - \beta_s)
+\]
+Equation \eqref{eq:forward_distribution} can be reparametrized so that we \(\mathbf{x}_t\) can be sampled as,
+\[
+\tag{3}
+\label{eq:forward_sample}
+\mathbf{x}_t \sim \sqrt{\bar{\alpha}_t} \mathbf{x}_0 + \sqrt{1 - \bar{\alpha}_t} \mathbf{\epsilon}
+\]
+where now \(\mathbf{\epsilon}\) is sampled from a standard gaussian, \( \mathbf{\epsilon} \sim \mathcal{N}(\mathbf{0},\mathbf{I}) \)</p>
+<p>Now, the goal of the diffusion model is to learn the reverse process, i.e. going from the noise, \(x_T \in \mathcal{N}(0, \mathbf{I})\) to some point in the original data distribution. The reverse diffusion process is defined by,
+\[
+p(\mathbf{x}_{0:T}) = p(\mathbf{x}_T) \prod_{t=1}^T p(\mathbf{x}_{t-1} | \mathbf{x}_t)
+\]
+Practically, it's difficult to calculate the reverse transition probability \(p(\mathbf{x}_{t-1} | \mathbf{x}_t)\), so instead we parametrize it using a neural network with parameters \(\theta\), and we assume the reverse process to also follow a Gaussian ditribution,
+\[
+\tag{4}
+\label{eq:reverse_prob}
+p_{\theta}(\mathbf{x}_{t-1} | \mathbf{x}_t) = \mathcal{N}(\mathbf{x}_{t-1}; \mu_{\theta}(\mathbf{x}_t, t), \Sigma_{\theta}(\mathbf{x}_t, t))\\
+\]
+Then, similarly to VAEs, we can derive a loss using the Evidence Lower Bound (ELBO). The derivation is quite involved, so I will spare you the details here. When deriving the loss, a Kullback–Leibler divergence appears between the forward and backward distributions and so we approximate the reverse transition probability with a Gaussian distribution, to more closely match the forward distribution, making it indeed similar to a VAE. Finally, after several simplifications, Ho et al. <sup id="fnref:8"><a class="footnote-ref" href="#fn:8">8</a></sup> came up with the following loss:
+\[
+\tag{5}
+\label{eq:loss}
+L_{\theta} = \mathbb{E}_{t,\mathbf{x}_0,\mathbf{\mathbf{\epsilon}}} \left[ \lVert \mathbf{\epsilon} - \mathbf{\epsilon}_{\theta}(\mathbf{x}_t, t) \rVert^2 \right]
+\]
+where \(\theta\) are the model parameters, and \(\mathbf{\epsilon}_{\theta}\) is the model which is being trained to predict the \(\mathbf{\epsilon}\). To train the model, we then sample \( \mathbf{x}_0 \) from the training dataset, randomly select a step \(t \in {1,...,T}\), and sample \(\mathbf{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})\). We then calculate the result of the forward diffusion on \( \mathbf{x}_0 \) using equation \eqref{eq:forward_sample}, and finally calculate the loss, above.</p>
+<p>For the reverse process, e.g. sampling an image from pure noise, we first sample a \(x_T\) from a standard Gaussian, and use the reverse transition probability (equation \eqref{eq:reverse_prob}) to iteratively sample the next \(x_t\). Given that we train a network to predict the added noise at each step, it can be shown that<sup id="fnref:7"><a class="footnote-ref" href="#fn:7">7</a></sup>,
+\[
+\tag{6}
+\label{eq:reverse_mean}
+\mu_{\theta}(\mathbf{x}_t, t) = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar{\alpha}_t}} \epsilon_{\theta}(\mathbf{x}_t, t) \right)
+\]
+For \(\Sigma_{\theta}\), though, we are free to choose. Ho <em>et al</em>, for example, found that making \(\Sigma_{\theta} = \sigma_t^2 \mathbf{I}\) and setting \(\sigma_t^2 = \beta_t\) or \(\sigma_t^2 = \tilde{\beta}_t\), both gave good results. Here, \(\tilde{\beta}_t\) is defined as,
+\[
+\tilde{\beta}_t = \frac{1 - \bar{\alpha}_{t-1}}{1 - \bar{\alpha}_t} \beta_t
+\]</p>
+<!-- code starts from here -->
+<p>With the theory out of the way, let us now introduce the model architecture and training code. We will use a Unet, similar to the autoencoder or VAE in the <a href="../latent-diffusion-series-variational-autoencoder">previous blog post</a>, but we will now also pass the time variable, \(t\) along. To propagate the time information through the network, it was found that using a so called sinusoidal positional embedding<sup id="fnref2:5"><a class="footnote-ref" href="#fn:5">5</a></sup><sup>,</sup><sup id="fnref2:8"><a class="footnote-ref" href="#fn:8">8</a></sup> can be effective. The sinusoidal positional embedding was first introduced in the seminal transformer paper<sup id="fnref:10"><a class="footnote-ref" href="#fn:10">10</a></sup>, which I'm reproducing here with the token position replaced by the time, \(t\):
+\[
+\begin{align}
+PE_{t, 2i} &amp;= \sin(t / s^{2i / d_{emb}})\\
+PE_{t, 2i+1} &amp;= \cos(t / s^{2i / d_{emb}})
+\end{align}
+\]
+where \(s\) is some appropriately chosen scale and \(d_emb\) is the model embedding size. To get a better intuition on how this embedding works, you can take a look at <a href="https://mfaizan.github.io/2023/04/02/sines.html">this blog post</a>, but basically it boils down to wanting to have some measure of distance between two (time) positions that follows from the dot product of the embeddings. The sinusoidal positional embedding has this property, indeed. In Python we implement the embedding as torch module as follows,</p>
+<pre class="code literal-block"><span class="k">class</span> <span class="nc">SinusoidalPositionalEmbedding</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">half_dim</span> <span class="o">=</span> <span class="n">dim</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">emb_scale</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">half_dim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emb_factor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="n">emb_scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">half_dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+        <span class="n">embeddings</span> <span class="o">=</span> <span class="n">time</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_factor</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">embeddings</span><span class="o">.</span><span class="n">sin</span><span class="p">(),</span> <span class="n">embeddings</span><span class="o">.</span><span class="n">cos</span><span class="p">()),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</pre>
+<p>where we perform the calculations in log-space and apply the exponential function in end, which makes sure we don't overflow when calculating the ratio inside the sine and cosine.</p>
+<p>The UNet we will be using here is very similar to the one we used before, only we pass the time embedding into each convolutional block, which is then added to the output of the convolution.</p>
+<pre class="code literal-block"><span class="k">class</span> <span class="nc">TimeEmbeddingConvBlock</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fin</span><span class="p">,</span> <span class="n">fout</span><span class="p">,</span> <span class="n">tin</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UnetConvBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">fin</span><span class="p">,</span> <span class="n">fout</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">InstanceNorm2d</span><span class="p">(</span><span class="n">fout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_relu</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LeakyReLU</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_emb_linear</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">tin</span><span class="p">,</span> <span class="n">fout</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t_emb</span><span class="p">):</span>
+        <span class="n">t_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_emb_linear</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_relu</span><span class="p">(</span><span class="n">t_emb</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">t_emb</span><span class="p">[:,:,</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">])</span>
+</pre>
+<p>Because the model is virtually identical to the one in the previous blog post, I refer the reader to that <a href="../latent-diffusion-series-variational-autoencoder">post</a>.</p>
+<p>We now need to define the variance schedule we will use. There are different options here, but two popular ones are either a linear or a cosine schedule <sup id="fnref2:7"><a class="footnote-ref" href="#fn:7">7</a></sup>.</p>
+<pre class="code literal-block"><span class="k">def</span> <span class="nf">make_cosine_schedule</span><span class="p">(</span><span class="n">num_timesteps</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.008</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_timesteps</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_timesteps</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">s</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">s</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">alpha_prod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">alpha_prod</span> <span class="o">=</span> <span class="n">alpha_prod</span> <span class="o">/</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+<span class="k">def</span> <span class="nf">make_linear_schedule</span><span class="p">(</span><span class="n">num_timesteps</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="mf">2e-2</span><span class="p">):</span>
+    <span class="n">betas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">num_timesteps</span><span class="p">)</span>
+    <span class="n">alpha_prod</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">betas</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">alpha_prod</span>
+</pre>
+<p>We can plot this schedule for e.g. 1000 time steps to get a feeling of how \( \bar{\alpha}_t \) changes.
+<img src="../../files/diffusion_alpha_bar_schedule.png" style="display:block; padding:1em 0;">
+In my experience, for small problems like the MNIST, the linear schedule seems to be a bit better, although the cosine model can also work fine if you increase the parameter, <code>s</code>, significantly. Here I will choose the linear schedule for the rest of the blog.</p>
+<p>Let us now implement equation \eqref{eq:forward_sample}, which will help us with the training. The function will take as input the model, a sampled latent, \(x_0\), and a time \(t \in [1,T]\), and calculate the corresponding prediction error (loss) of the model from the diffused sample, \(x_t\).</p>
+<pre class="code literal-block"><span class="k">def</span> <span class="nf">do_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x_0</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x_0</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">x_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">ap</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_0</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ap</span><span class="p">)</span> <span class="o">*</span> <span class="n">eps</span>
+
+    <span class="n">eps_theta</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">eps_theta</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">loss</span>
+</pre>
+<p>As you see, first a noise, \( \epsilon \) is sampled from a standard gaussian, and then equation \eqref{eq:forward_sample} is used to diffuse the sample \(x_0\) to time \(t\). The model then takes \(x_t\) along with \(t\) as input to produce \(\epsilon_{\theta}\) and we finally use equation \eqref{eq:loss} to calculate the loss.</p>
+<p>You might remember that we trained the VAE in the previous blog post so that we can enable our diffusion model to operate in the latent space. We use the VAE we trained in the previous post, to produce the dataset we will use to train and validate our latent diffusion model:</p>
+<pre class="code literal-block"><span class="c1"># Prepare latent data for diffusion model</span>
+<span class="n">encoder</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+<span class="c1"># Train data</span>
+<span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+<span class="n">lat_train</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x_train</span><span class="p">[</span><span class="n">bid</span><span class="o">*</span><span class="n">batch_size</span><span class="p">:(</span><span class="n">bid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">batch_size</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="n">mu_sigma</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">mu</span>    <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,:</span><span class="n">latent_channels</span><span class="p">,:,:]</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">mu_sigma</span><span class="p">[:,</span><span class="n">latent_channels</span><span class="p">:,:,:]</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">mu</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">N</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">+</span> <span class="n">mu</span>
+        <span class="n">lat_train</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+
+<span class="n">lat_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">lat_train</span><span class="p">)</span>
+</pre>
+<p>and repeat exactly the same for the validation set. Note that we only need to use the encoder part of the VAE we trained.</p>
+<p>Finally, we can train the model. The training code is fairly simple since we already implemented calculation of the loss in <code>do_step</code>. The rest is basically what you are already used to — setting up the batch, backpropagating, calculating the validation loss, and some bookkeeping.</p>
+<pre class="code literal-block"><span class="n">alpha_prod</span> <span class="o">=</span> <span class="n">alpha_prod</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">learning_rate</span><span class="p">)</span>
+
+<span class="n">i_log</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">num_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">lat_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+<span class="n">num_batches_val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">lat_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span>
+
+<span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">train_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">lat_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">average_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">train_ids</span><span class="p">[</span><span class="n">bid</span><span class="o">*</span><span class="n">batch_size</span><span class="p">:(</span><span class="n">bid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">batch_size</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">lat_train</span><span class="p">[</span><span class="n">batch_ids</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="n">time_steps</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">)</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">do_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">average_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="o">/</span> <span class="n">num_batches</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">i_log</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">val_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">bid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches_val</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">lat_val</span><span class="p">[</span><span class="n">bid</span><span class="o">*</span><span class="n">batch_size</span><span class="p">:(</span><span class="n">bid</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">batch_size</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                    <span class="mi">1</span><span class="p">,</span> <span class="n">time_steps</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+                <span class="p">)</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">do_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+                <span class="n">val_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">val_loss</span> <span class="o">/=</span> <span class="n">num_batches_val</span>
+        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">average_loss</span><span class="p">,</span> <span class="n">val_loss</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Epoch </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> loss = </span><span class="si">{</span><span class="n">average_loss</span><span class="si">}</span><span class="s1"> val_loss = </span><span class="si">{</span><span class="n">val_loss</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</pre>
+<p>This is what the training and validation loss look like after a couple hundred epochs:
+<img src="../../files/latent_diffusion_model_loss.png" style="display:block; padding:1em 0;"></p>
+<p>One thing we have not discussed yet, is how to actually sample MNIST characters using the model. This is done by running diffusion backwards as we discussed previously, by applying equations \eqref{eq:reverse_prob} and \eqref{eq:reverse_mean}:</p>
+<pre class="code literal-block"><span class="k">def</span> <span class="nf">do_diffusion_backward</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">):</span>
+    <span class="n">x_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">time_steps</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">a</span>  <span class="o">=</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">ap</span> <span class="o">=</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">eps_theta</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_t</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+        <span class="n">x_t</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">*</span>
+            <span class="p">(</span><span class="n">x_t</span> <span class="o">-</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ap</span><span class="p">))</span> <span class="o">*</span> <span class="n">eps_theta</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ap_prev</span> <span class="o">=</span> <span class="n">alpha_prod</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ap_prev</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ap</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">x_t</span> <span class="o">+=</span> <span class="n">N</span> <span class="o">*</span> <span class="n">sigma</span>
+
+    <span class="k">return</span> <span class="n">x_t</span>
+</pre>
+<p>Here we used \(\sigma_t^2 = \bar{\beta}_t\). Using this function we can now generate as many MNIST digits as we like. Because the diffusion model basically generates a latent vector, the VAE decoder needs to be used to decode the latent vector into an actual character:</p>
+<pre class="code literal-block"><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">eval_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="mi">36</span><span class="p">,)</span> <span class="o">+</span> <span class="n">lat_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">eval_shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">do_diffusion_backward</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">)</span>
+
+    <span class="n">decoder</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+</pre>
+<p>The above code generates 72 characters, which we plot below:
+<img src="../../files/latent_diffusion_gen.png" style="display:block; padding:1em 0;">
+You will see that most of the digits generated by our diffusion model look quite good, with a couple of exceptions. This can probably be further improved with a bigger model, and using different parameters for e.g. the embedding, or the variance schedule. This type of diffusion models requires unfortunately some tweaking to get the best results.</p>
+<p>Even though we can eyeball the quality of the data, it's better if we have some measure of how good the generated digits are. Now, if you remember from the <a href="../latent-diffusion-series-mnist-classifier">first blog post</a>, we trained a classifier with the motivation of getting familiar with the MNIST dataset on one hand, but most importantly so that we could use it to evaluate the characters generated by the latent diffusion model. To do that, we will be calculating the <a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance">Fréchet inception distance (FID)</a> using our own trained classifier. FID basically compares the distribution of a generated dataset with the distribution of the ground truth. Assuming multidimensional Gaussian distributions for both datasets, the Fréchet distance can be calculated as,
+\[
+d_F = \left| \mu_A - \mu_B \right|^2 + tr\left( \Sigma_A + \Sigma_B - 2 \sqrt{\Sigma_A \Sigma_B}\right)
+\]
+and we can implement this in Python:</p>
+<pre class="code literal-block"><span class="k">def</span> <span class="nf">frechet_distance</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">x_b</span><span class="p">):</span>
+    <span class="n">mu_a</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x_a</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">sigma_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">x_a</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">mu_b</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x_b</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">sigma_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">x_b</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">mu_a</span> <span class="o">-</span> <span class="n">mu_b</span>
+    <span class="n">covmean</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">sqrtm</span><span class="p">(</span><span class="n">sigma_a</span> <span class="o">@</span> <span class="n">sigma_b</span><span class="p">)</span>
+    <span class="n">tr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">sigma_a</span> <span class="o">+</span> <span class="n">sigma_b</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">covmean</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">diff</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">tr</span>
+</pre>
+<p>The data that we pass to <code>frechet_distance</code> is actually the output of the last layer of the classifier before the classification layer. If you remember the architecture of that model, the layer before the classification layer has dimension 128.</p>
+<p>Now, we can generate some data and pass it to <code>classifier.layers()</code> to produce the latent variables which we'll pass to <code>frechet_distnace</code>. I did this for both the validation and train set, but also generated a dataset with both the diffusion model and the VAE we trained previously. For getting a baseline, I also passed Gaussian noise with the same mean and standard deviation we get for the training set. Evaluating the Fréchet distance for all of these datasets resulted in the following:</p>
+<table>
+<thead><tr>
+<th>Dataset</th>
+<th align="center">FID</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Random</td>
+<td align="center">48.43</td>
+</tr>
+<tr>
+<td>VAE</td>
+<td align="center">63.49</td>
+</tr>
+<tr>
+<td>Diffusion</td>
+<td align="center">6.02</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td align="center">0.30</td>
+</tr>
+</tbody>
+</table>
+<p>Surprisingly, the random dataset performed better than the VAE, but that's also kind of the weak point of this metric; it's susceptible to fooling it by passing a distribution that resembles the one we are comparing it with. On the other hand, the diffusion model did significantly better than both the Random and VAE, but there is still some room for improvement!</p>
+<!--
+@important:
+Final decision. Just introduce DDPM with little or no derivation for now and
+make a separate blog post explaining iterative alpha-(de)blending, and how it
+connects with stochastic interpolants or flow matching. Alpha-(de)blending
+gives very nice results though! I think since the latent diffusion model used
+DDPM we should stick with that, but I think introducing the alpha-(de)blending
+is really interesting. Not only can we do fun things like moving along the path
+based on the blending/deblending, but also make a connection to flow matching
+and stochastic interpolants.
+-->
+
+<h2>Conclusion</h2>
+<p>Finally, in the third blog post of the series we were able to train a latent diffusion model and have it generate MNIST digits. This was not easy, as in the previous two blog posts, we needed to setup a classifier and a VAE, the former for calculating the quality of the generated dataset, and the latter for calculating the latent variables which we used to train our model. Thankfully, we were rewarded with the result; a better MNIST digit generator. The amount of work and components needed to make this work, is a tiny reflection of where AI is heading, namely a complicated mess of carefully put together components!</p>
+<p>If you didn't already follow along with the <a href="https://colab.research.google.com/drive/1dNEr_kQPMkDU6SYZ_cqoizh3SKuL6ind">collab notebook</a> I invite you to try it out.</p>
+<p>I hope you enjoyed the series and learned something new. Do keep an eye for any new blog posts. I'm thinking of making a quick post about Iterative α-(de)Blending <sup id="fnref2:3"><a class="footnote-ref" href="#fn:3">3</a></sup>, as I had extremely good results with it, and with less code.</p>
+<div class="footnote">
+<hr>
+<ol>
+<li id="fn:1">
+<p><a href="https://arxiv.org/abs/1503.03585">J. Sohl-Dickstein, E. A. Weiss, N. Maheswaranathan, S. Ganguli -- Deep unsupervised learning using nonequilibrium thermodynamics</a> <a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">↩</a></p>
+</li>
+<li id="fn:2">
+<p><a href="http://arxiv.org/abs/2208.11970">C. Luo -- Understanding Diffusion Models: A Unified Perspective</a> <a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">↩</a></p>
+</li>
+<li id="fn:3">
+<p><a href="https://arxiv.org/abs/2305.03486">E. Heitz, L. Belcour, T. Chambon -- Iterative α-(de)Blending: a Minimalist Deterministic Diffusion Model</a> <a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">↩</a><a class="footnote-backref" href="#fnref2:3" title="Jump back to footnote 3 in the text">↩</a></p>
+</li>
+<li id="fn:4">
+<p><a href="https://arxiv.org/abs/2303.08797">M. S. Albergo, N. M. Boffi, E. Vanden-Eijnden -- Michael S. Albergo, Nicholas M. Boffi, Eric Vanden-Eijnden</a> <a class="footnote-backref" href="#fnref:4" title="Jump back to footnote 4 in the text">↩</a></p>
+</li>
+<li id="fn:5">
+<p><a href="https://arxiv.org/abs/2112.10752">R. Rombach, A. Blattmann, D. Lorenz, P. Esser, B. Ommer -- High-Resolution Image Synthesis with Latent Diffusion Models</a> <a class="footnote-backref" href="#fnref:5" title="Jump back to footnote 5 in the text">↩</a><a class="footnote-backref" href="#fnref2:5" title="Jump back to footnote 5 in the text">↩</a></p>
+</li>
+<li id="fn:6">
+<p><a href="http://arxiv.org/abs/2011.13456">Y. Song, J. K. Sohl-Dickstein, P. D. Kingma, A. Kumar, S. Ermon, B. Poole -- Score-Based Generative Modeling through Stochastic Differential Equations</a> <a class="footnote-backref" href="#fnref:6" title="Jump back to footnote 6 in the text">↩</a></p>
+</li>
+<li id="fn:7">
+<p><a href="http://arxiv.org/abs/2102.09672">A. Nichol, P. Dhariwal -- Improved Denoising Diffusion Probabilistic Models</a> <a class="footnote-backref" href="#fnref:7" title="Jump back to footnote 7 in the text">↩</a><a class="footnote-backref" href="#fnref2:7" title="Jump back to footnote 7 in the text">↩</a></p>
+</li>
+<li id="fn:8">
+<p><a href="https://arxiv.org/abs/2006.11239">J. Ho, A. Jain, P. Abbeel -- Denoising Diffusion Probabilistic Models</a> <a class="footnote-backref" href="#fnref:8" title="Jump back to footnote 8 in the text">↩</a><a class="footnote-backref" href="#fnref2:8" title="Jump back to footnote 8 in the text">↩</a></p>
+</li>
+<li id="fn:9">
+<p><a href="https://arxiv.org/abs/2206.00364">T. Karras, M. Aittala, T. Aila, S. Laine -- Elucidating the Design Space of Diffusion-Based Generative Models</a> <a class="footnote-backref" href="#fnref:9" title="Jump back to footnote 9 in the text">↩</a></p>
+</li>
+<li id="fn:10">
+<p><a href="https://arxiv.org/abs/1706.03762">A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. Kaiser, I. Polosukhin -- Attention Is All You Need</a> <a class="footnote-backref" href="#fnref:10" title="Jump back to footnote 10 in the text">↩</a></p>
+</li>
+</ol>
+</div>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="../latent-diffusion-series-variational-autoencoder/" rel="prev" title="Latent Diffusion Series: Variational Autoencoder (VAE)">Previous post</a>
+            </li>
+        </ul></nav></aside><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha384-3lJUsx1TJHt7BA4udB5KPnDrlkO8T6J6v/op7ui0BbCjvZ9WqV4Xm6DTP6kQ/iBH" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});
+        </script></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>
