@@ -1,8 +1,8 @@
 <!--
 .. title: Latent Diffusion Series: Latent Diffusion Model
 .. slug: latent-diffusion-series-diffusion-model
-.. date: 2023-11-29 15:10:30 UTC+02:00
-.. previewimage: /files/mnist_autoencoder_bg.png
+.. date: 2024-09-27 15:10:30 UTC+02:00
+.. previewimage: /files/mnist_corruption_bg.png
 .. has_math: true
 .. tags: 
 .. category: 
