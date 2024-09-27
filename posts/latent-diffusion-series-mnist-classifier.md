@@ -96,11 +96,7 @@ class Classifier(torch.nn.Module):
             torch.nn.Flatten(),
             torch.nn.Dropout(),
 
-            torch.nn.Linear(128, 64),
-            torch.nn.ReLU(),
-            torch.nn.Linear(64, 32),
-            torch.nn.ReLU(),
-            torch.nn.Linear(32, 10),
+            torch.nn.Linear(128, 10),
         )
 
     def forward(self, x):
