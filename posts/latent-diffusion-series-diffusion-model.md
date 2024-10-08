@@ -19,7 +19,7 @@ In the Latent Diffusion Series of blog posts, I'm going through all components n
 
 The links will become active as soon as they the posts are completed. Even though this blog post is part of a series, I will try my best to write it in such a way that it's not required to have read the previous blog posts.
 
-In this post I will discuss [Diffusion Models](https://en.wikipedia.org/wiki/Diffusion_model) and more specifically, Latent Diffusion Models, which are trained to denoise latent representations. This enables us to generate anything we have a large dataset of by sampling noise from a normal distributions and denoising it using a diffusion model trained for this task. Here we will build a latent diffusion model using components from the previous two posts and train it on the MNIST dataset, and compare the results we got when we generated digits using a VAE. If you'd like a bit more about the MNIST dataset or VAEs, please look at the previous blog posts linked above. I have created a Python [notebook on Colab](https://colab.research.google.com/drive/1dNEr_kQPMkDU6SYZ_cqoizh3SKuL6ind), which you can use to follow along and experiment with this post's code.
+In this post I will discuss [Diffusion Models](https://en.wikipedia.org/wiki/Diffusion_model) and more specifically, Latent Diffusion Models, which are trained to denoise latent representations. This enables us to generate anything we have a large dataset of by sampling noise from a normal distribution and denoising it using a diffusion model trained for this task. Here we will build a latent diffusion model using components from the previous two posts and train it on the MNIST dataset, and compare the results we got when we generated digits using a VAE. If you'd like a bit more about the MNIST dataset or VAEs, please look at the previous blog posts linked above. I have created a Python [notebook on Colab](https://colab.research.google.com/drive/1dNEr_kQPMkDU6SYZ_cqoizh3SKuL6ind), which you can use to follow along and experiment with this post's code.
 
 # Diffusion Model
 
@@ -340,7 +340,7 @@ I hope you enjoyed the series and learned something new. Do keep an eye for any 
 [^1]: [J. Sohl-Dickstein, E. A. Weiss, N. Maheswaranathan, S. Ganguli -- Deep unsupervised learning using nonequilibrium thermodynamics](https://arxiv.org/abs/1503.03585)
 [^2]: [C. Luo -- Understanding Diffusion Models: A Unified Perspective](http://arxiv.org/abs/2208.11970)
 [^3]: [E. Heitz, L. Belcour, T. Chambon -- Iterative α-(de)Blending: a Minimalist Deterministic Diffusion Model](https://arxiv.org/abs/2305.03486)
-[^4]: [M. S. Albergo, N. M. Boffi, E. Vanden-Eijnden -- Michael S. Albergo, Nicholas M. Boffi, Eric Vanden-Eijnden](https://arxiv.org/abs/2303.08797)
+[^4]: [M. S. Albergo, N. M. Boffi, E. Vanden-Eijnden -- Stochastic Interpolants: A Unifying Framework for Flows and Diffusions](https://arxiv.org/abs/2303.08797)
 [^5]: [R. Rombach, A. Blattmann, D. Lorenz, P. Esser, B. Ommer -- High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752)
 [^6]: [Y. Song, J. K. Sohl-Dickstein, P. D. Kingma, A. Kumar, S. Ermon, B. Poole -- Score-Based Generative Modeling through Stochastic Differential Equations](http://arxiv.org/abs/2011.13456)
 [^7]: [A. Nichol, P. Dhariwal -- Improved Denoising Diffusion Probabilistic Models](http://arxiv.org/abs/2102.09672)
