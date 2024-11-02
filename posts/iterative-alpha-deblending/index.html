@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html prefix="    og: http://ogp.me/ns# article: http://ogp.me/ns/article# " vocab="http://ogp.me/ns" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Iterative α-(de)blending and Stochastic Interpolants | NICK TASIOS</title>
+<link href="../../assets/css/common.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/theme.css" rel="stylesheet" type="text/css">
+<link href="../../assets/css/code.css" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<meta name="theme-color" content="#404040">
+<meta name="generator" content="Nikola (getnikola.com)">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="http://www.nicktasios.nl/posts/iterative-alpha-deblending/">
+<!--[if lt IE 9]><script src="../../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
+<meta name="author" content="Nick Tasios">
+<link rel="prev" href="../latent-diffusion-series-diffusion-model/" title="Latent Diffusion Series: Latent Diffusion Model" type="text/html">
+<meta property="og:site_name" content="NICK TASIOS">
+<meta property="og:title" content="Iterative α-(de)blending and Stochastic Interpolants">
+<meta property="og:url" content="http://www.nicktasios.nl/posts/iterative-alpha-deblending/">
+<meta property="og:description" content="In this post I'm looking into a paper the authors of which promise to make diffusion models simple to understand and implement, called Iterative α-(de)blending1, and find out that this promise is only">
+<meta property="og:image" content="http://www.nicktasios.nl/files/alpha_deblending_bg.png">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2024-11-02T10:50:30+02:00">
+</head>
+<body>
+    <a href="#content" class="sr-only sr-only-focusable">Skip to main content</a>
+     
+    <header id="header"><div id="menu_content">
+            
+    <div id="brand"><a href="../../" title="NICK TASIOS" rel="home">
+
+        <span id="blog-title">NICK TASIOS</span>
+    </a></div>
+
+            
+
+            
+    <nav id="menu"><input type="checkbox"><div id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul>
+<li>
+                <li><a href="../../projects/">Projects</a></li>
+                <li><a href="../">Blog</a></li>
+                <li><a href="../../about/">About</a></li>
+        
+        
+        </ul></nav>
+</div>
+    </header><div id="container">
+         <main id="content"><article class="post-text h-entry hentry postpage" itemscope="itemscope" itemtype="http://schema.org/Article"><header><h1 class="p-name entry-title" itemprop="headline name"><a href="." class="u-url">Iterative α-(de)blending and Stochastic Interpolants</a></h1>
+
+        <div class="metadata">
+            <p class="byline author vcard"><span class="byline-name fn" itemprop="author">
+                    Nick Tasios
+            </span></p>
+            <p class="dateline"><a href="." rel="bookmark"><time class="published dt-published" datetime="2024-11-02T10:50:30+02:00" itemprop="datePublished" title="2024-11-02 10:50">2024-11-02 10:50</time></a></p>
+        </div>
+        
+
+    </header><div class="e-content entry-content" itemprop="articleBody text">
+    <div>
+<p>In this post I'm looking into a paper the authors of which promise to make diffusion models simple to understand and implement, called Iterative α-(de)blending<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>, and find out that this promise is only partially fulfilled, at least personally. I reproduce the algorithm from the paper and apply it to the generation of MNIST digits, like I did in the previous series of posts, and find out that something is missing. As the title of the post reveals, we might find the missing ingredient in Stochastic interpolants.</p>
+<!-- TEASER_END -->
+<p>The authors of the paper, like many others, found the topic of diffusion models difficult to enter. Usually, diffusion models involve many difficult concepts used from probability theory, stochastic differential equations, etc., and the fact that diffusion models can be approached in so many different ways doesn't help either. This was also my motivation for writing the <a href="../latent-diffusion-series-mnist-classifier">blog series</a> in diffusion models — although I'm not sure I was able to make the topic much more approachable. Thus, they set out to derive a simple model using only bachelor-level concepts. So let's have a closer look!</p>
+<h2>Iterative α-(de)Blending</h2>
+<p>As you might remember from the posts on diffusion models, the whole goal we are trying to achieve, is finding a mapping between two probability distributions, so that we can e.g. sample from a simple one, like a Gaussian, and map it onto a more complex one, like the distribution of MNIST digits, or a certain dataset of images. The distributions are generally complicated and many-dimensional, which makes it hard to visualize. To facilitate the discussion, I will give examples of distributions on the 2D plane. Thus, for example, we might have distributions \(p_0, p_1\), corresponding to a uniformly sampled triangle and rhombus, respectively.
+<img src="../../files/mapping_distributions.svg" style="display:block; padding:1em 0;">
+In the image above, you can see a depiction of a possible mapping between these two distributions, as lines or paths connecting samples from \(p_0\) and \(p_1\). The paper spends some time introducing a way for calculating this mapping deterministically as a series of two basic operations they call \(\alpha\)-blending and \(\alpha\)-deblending. As the name suggests, these two operations are inspired by the blending of two images, e.g. <a href="https://en.wikipedia.org/wiki/Alpha_compositing">alpha blending</a>, where the blended image is a result of linearly interpolating between two images based on their alpha values. </p>
+<p>The \(\alpha\)-blending operation is defined as linearly interpolating between a sample \(x_0 \sim p_0\), and a sample \(x_1 \sim p_1\),
+\[
+\tag{1}
+\label{eq:blending_equation}
+x_{\alpha} = (1 - \alpha) x_0 + \alpha x_1
+\]
+with \(x_{\alpha}\) being distributed according to \(p_{\alpha}\),
+while \(\alpha\)-deblending is the inverse operation (statistically), that is, starting from a blended sample \(x_{\alpha} \sim p_{\alpha}\), and ending up with pair of samples \( (x_0, x_1) \sim (p_0, p_1)\). As you might imaging, even though the blending operation is quite straightforward, the deblending operation is not as simple. There is no unique pair of \(x_0, x_1\) that blend to \(x_{\alpha}\), but a distribution, \(p(x_0, x_1 | x_{\alpha})\). Now, we notice that we can chain these operations; for example, if we have samples \(x_0, x_1\), we can blend them into sample \(x_{\alpha}\), and then we can deblend in some \(x_0', x_1'\), and then we can apply the blending again, with \(\alpha' = \alpha + \Delta \alpha\). We can repeat that for an arbitrary number of steps for an increasing value of the blending parameter \(\alpha\). A series of such blended points, \(x_{\alpha}\), can be considered as points on a path mapping \(x_0\) to \(x_1\). We can write code to produce such paths,</p>
+<pre class="code literal-block"><span class="k">def</span> <span class="nf">iadb</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">N</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">sample_triangle</span><span class="p">()[</span><span class="mi">0</span><span class="p">,:]</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">sample_square</span><span class="p">()[</span><span class="mi">0</span><span class="p">,:]</span>
+    <span class="n">xt</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x1</span>
+
+    <span class="n">points</span> <span class="o">=</span> <span class="p">[</span><span class="n">x0</span><span class="p">,</span> <span class="n">xt</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">sample_triangle</span><span class="p">()[</span><span class="mi">0</span><span class="p">,:]</span>
+            <span class="n">x1</span> <span class="o">=</span> <span class="p">(</span><span class="n">xt</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">x0</span><span class="p">)</span> <span class="o">/</span> <span class="n">a</span>
+            <span class="k">if</span> <span class="n">point_in_square</span><span class="p">(</span><span class="n">x1</span><span class="p">):</span>
+                <span class="n">a</span> <span class="o">+=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">N</span>
+                <span class="n">xt</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x1</span>
+                <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
+                <span class="k">break</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+</pre>
+<p>Here, we first calculate the step size, \(\Delta \alpha = 1 / N\), and immediately calculate the first step, \(x_{\alpha}\) by sampling points from the triangle (\(p_0\)), and from the square (\(p_1\)), and using the blending equation, eq. \eqref{eq:blending_equation}. Then, to calculate all other points in the path, at each step we sample \(p_0\) and solve eq. \eqref{eq:blending_equation} to find a new point \(x_1\) — this is the deblending operation. If \(x_1\) happens to be in the square, we update \(\alpha\), and calculate a new \(x_{\alpha}\) using the blending equation again. With this function, we can generate a number of paths, and get a figure similar to the one above, and if we increase the number of steps significantly, you will see that the paths start to converge.
+<img src="../../files/iadb_simple_path_combined.svg" style="display:block; padding:1em 0;">
+The authors of the paper spend some time proving that indeed this chain of operations converges in the limit of infinitesimal \(\Delta \alpha\). They further show that the direction one needs to move to, at a point \(x_{\alpha}\), coincides with the tangent of the deterministic path, and is equal to \(\bar{x}_1 - \bar{x}_0\), where the average is taken over all pairs of points \(x_0, x_1\) that could have blended in to \(x_{\alpha}\). The tangent, then, is a function of \(x_{\alpha}\), and \(\alpha\). Following the paper's notation, let's denote it as \(D(x_{\alpha}, \alpha)\).</p>
+<p>It's not that difficult to approximate \(D(x_{\alpha}, \alpha)\) using a grid, for the toy problem we have been working on.
+<img src="../../files/iadb_field.svg" style="display:block; padding:1em 0;">
+Above you see the polar angle (calculated as <code>atan2(y/x)</code>) of the field \(D(x_{1/2}, 1/2)\). The field is only defined for a region in the middle, and outside that region there are just no points \(x_{1/2}\) that deblend into points on the triangle and square. The field itself is calculated by first sampling a number of points in the two distributions and then producing all combinations of blended points for a particular \(\alpha\), and averaging the value of \(x_1 - x_0\) at the grid point corresponding to \(x_{\alpha}\). Below is the code the produces the field for a particular \(\alpha\), given points from each of the two distributions.</p>
+<pre class="code literal-block"><span class="k">def</span> <span class="nf">calc_field</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">pts_a</span><span class="p">,</span> <span class="n">pts_b</span><span class="p">,</span> <span class="n">field_dim</span><span class="p">):</span>
+    <span class="c1"># Calculate the field dimensions.</span>
+    <span class="n">X_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">pts_a</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">pts_b</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="n">Y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">pts_a</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">pts_b</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]])</span>
+
+    <span class="n">field</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">X_max</span> <span class="o">*</span> <span class="n">field_dim</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="nb">int</span><span class="p">(</span><span class="n">Y_max</span> <span class="o">*</span> <span class="n">field_dim</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="mi">2</span>
+    <span class="p">))</span>
+
+    <span class="c1"># Calculate grid points of x_a for all combinations of points.</span>
+    <span class="n">x_a</span> <span class="o">=</span> <span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">pts_a</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="n">pts_b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">])</span>
+    <span class="n">x_a</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_a</span> <span class="o">*</span> <span class="n">field_dim</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># Calculate their 1D (ravelled) index for easy averaging using</span>
+    <span class="c1"># bincount.</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel_multi_index</span><span class="p">(</span><span class="n">x_a</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">num_samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">num_samples</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="c1"># The uv coordinates here are the unravelled coordinates.</span>
+    <span class="n">uv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="n">m</span><span class="p">]</span>
+    <span class="n">uv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">uv</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]))</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="c1"># Now calculate the average field.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="p">(</span><span class="n">pts_b</span><span class="p">[</span><span class="kc">None</span><span class="p">,:,</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">pts_a</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">Dmean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">field</span><span class="p">[</span><span class="n">uv</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span><span class="n">uv</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dmean</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">/</span> <span class="n">num_samples</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+
+    <span class="c1"># Normalize field.</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">field</span><span class="p">[</span><span class="n">norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">/=</span> <span class="n">norm</span><span class="p">[</span><span class="n">norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span><span class="kc">None</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">field</span>
+</pre>
+<p>Training a neural network to learn \(D(x_{\alpha}, \alpha)\), is not very different, actually; points \(x_0\) and \(x_1\) are sampled from the two distributions, the blended sample, \(x_{\alpha}\) is calculated, and finally the loss,
+\[
+\tag{2}
+\label{eq:loss}
+L = \left| D_{\theta}(x_{\alpha}, \alpha) - (x_1 - x_0) \right|^2
+\]
+is backpropagated.
+The authors prove that in the limit of infinitesimal steps \( \Delta \alpha \rightarrow 0 \) ,
+\[
+\frac{dx_{\alpha}}{d\alpha} = \bar{x}_1 - \bar{x}_0 = D(x_{\alpha}, \alpha)
+\]
+where the expectation values are taken over all samples \(x_0, x_1\) which blend into \(x_{\alpha} \). This is an ordinary differential equation (ODE), and integrating it allows us to sample, to <a href="https://en.wikipedia.org/wiki/Euler_method">first-order</a>,
+\[
+\tag{3}
+\label{eq:sampling}
+x_{\alpha + \Delta \alpha} = x_{\alpha} + D(x_{\alpha}, \alpha) \Delta \alpha
+\]
+With this, we can adapt our diffusion model code from the previous blog post to train a neural network to generate MNIST digits, and we find that it produces even higher quality digits than our previous efforts, and with less implementation complexity.
+<img src="../../files/mnist_iadb_random_samples.png" style="display:block; padding:1em 0;">
+We get an amazing Fréchet distance of about 3, while with the latent diffusion model I introduced in the <a href="../latent-diffusion-series-diffusion-model/">previous blog post</a> we got a Fréchet distance of 6.
+The code for the training and sampling step are really simple:</p>
+<pre class="code literal-block"><span class="k">def</span> <span class="nf">do_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x0</span><span class="p">):</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">x_alpha</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">x1</span>
+
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_alpha</span><span class="p">,</span> <span class="n">alpha</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">x1</span> <span class="o">-</span> <span class="n">x0</span><span class="p">,</span> <span class="n">pred</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">loss</span>
+
+<span class="k">def</span> <span class="nf">do_diffusion_backward</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">):</span>
+    <span class="n">x_alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">time_steps</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="n">time_steps</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">time_steps</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">alpha_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="n">alpha</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_alpha</span><span class="p">,</span> <span class="n">alpha_t</span><span class="p">)</span>
+        <span class="n">x_alpha</span> <span class="o">+=</span> <span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="o">*</span> <span class="n">pred</span>
+
+    <span class="k">return</span> <span class="n">x_alpha</span>
+</pre>
+<p>which is just the application of equations \eqref{eq:blending_equation}, \eqref{eq:loss}, and \eqref{eq:sampling}.</p>
+<h2>Stochastic Interpolants</h2>
+<p>As we saw above, iterative α-(de)blending does a really good job at generating good quality samples and is really easy to implement, but one thing I'm missing is the motivation behind the method — how would you derive it from first principles. Instead, it feels ad-hoc, but then I came across a paper by M. S. Albergo <em>et al</em> about so called Stochastic Interpolants<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup><sup>,</sup><sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup>.</p>
+<p>Stochastic interpolants is a class of flow-based models, so before discussing it, let us first describe some key concepts used in flow-based models. First of all, we will replace the use \(\alpha\), which is used in the Iterative α-(de)Blending paper<sup id="fnref2:1"><a class="footnote-ref" href="#fn:1">1</a></sup>, with the use of \(t\) for reasons that will become apparent soon. In the previous discussion, above, we already encountered a field, \( D(x_t, t) \), which was used to 'flow' samples from the density \(\rho_0\) to the density \(\rho_1\). It turns out, this field is a so-called velocity field; given some time-dependent function that maps samples between the two distributions, \(\mathbf{X}_t(x) \sim \rho_t\), where \(\rho_t\) is some intermediate density, the velocity field with respect to that mapping is given by its time derivative,
+\[
+\tag{5}
+\label{eq:ode}
+\mathbf{v}_t(\mathbf{X}_t) = \frac{\partial \mathbf{X}_t} { \partial t }
+\]
+As the authors of the paper explain, in diffusion models the challenge is to design such time-dependent function to best reach a complex target distribution from a simple one, while maintaining computational efficiency. The equation above leads to a continuity equation,
+\[
+\partial_t \rho_t + \nabla \cdot (\mathbf{v}_t \rho_t) = 0
+\]
+Note that the <a href="https://en.wikipedia.org/wiki/Continuity_equation">continuity equation</a> tells us that the <em>amount</em> of probability is conserved locally; it cannot be created nor destroyed, and it can only move by a continuous flow. With this the problem then becomes finding a velocity field that satisfies the above equation. This of course is not simple, and many papers have been written about this topic, but M. S. Albergo <em>et al</em> <sup id="fnref2:2"><a class="footnote-ref" href="#fn:2">2</a></sup><sup>,</sup><sup id="fnref2:3"><a class="footnote-ref" href="#fn:3">3</a></sup> tackle this problem by introducing what they call an <em>interpolant</em>, a time-dependent function of two variables, \( I_t(x_0, x_1) \), for which it holds that at \(t = 0\) and \(t = 1\), the interpolant is equal to \(x_0\) and \(x_1\) respectively. By randomly selecting samples \(x_0 \sim \rho_0 \),  \(x_1 \sim \rho_1 \), the interpolant \( I_t(x_0, x_1) \) generates random samples \(x_t \sim \rho_t\). Thus, \(\rho_t\) is completely determined by the design of the interpolant, and only a velocity field needs to be calculated from the continuity equation.
+Note, that even though \(x_t = I_t(x_0, x_1)\) is a stochastic process, it is the continuity equation that makes the stochastic process equivalent to the process described in Iterative α-(de)Blending. After some derivations, the authors derive an objective for the velocity field,
+\[
+\tag{5}
+\label{eq:loss_complex}
+L(\hat{\mathbf{v}}) = \mathbb{E} \left[ \left| \hat{\mathbf{v}}_t(I_t(x_0, x_1)) \right|^2 -2 \partial_t I_t(x_0, x_1) \cdot \hat{\mathbf{v}}_t(I_t(x_0, x_1))\right]
+\]
+interestingly, they also offer an alternative objective,
+\[
+\tag{6}
+\label{eq:loss_simple}
+L(\hat{\mathbf{v}}) = \mathbb{E} \left[ \left| \hat{\mathbf{v}}_t(I_t(x_0, x_1)) - \partial_t I_t(x_0, x_1) \right|^2 \right]
+\]
+but they mention that this objective <em>remains strictly positive at \( \hat{\mathbf{v}} = \mathbf{v} \) in general so it offers no baseline measure of convergence</em>.</p>
+<p>Looking at the interpolant, after having discussed Iterative α-(de)Blending, we immediately recognize the blending function \eqref{eq:blending_equation} as a certain choice of interpolant. Indeed, if we calculate the derivative of \(I_t(x_0, x_1) = (1 - t) x_0 + t x_1\), we get,
+\[
+\partial_t I_t(x_0, x_1) = \partial_t \left( (1 - t) x_0 + t x_1 \right) = x_1 - x_0
+\]
+and the loss in equation \eqref{eq:loss_simple}, becomes equivalent to that in equation \eqref{eq:loss}. Sampling, is then just integrating the ODE \eqref{eq:ode}, and of course, more sophisticated integration methods can be used, like <a href="https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods">Runge-Kutta</a>.</p>
+<h2>Conclusion</h2>
+<p>In this blog post, we explored the surprising paper by E. Heitz <em>et al</em>, called Iterative α-(de)Blending, which explored the idea of implementing diffusion models as a chain of blending and deblending operations which produce a mapping between two probability densities. This method gave really good results compared to our previous latent diffusion model implementation, and required less effort to implement. No only that, but the diffusional model we introduced in the previous post, has instability issues close to the parameter boundaries. Even though the method is simple, I didn't feel it was well enough motivated in the paper, but coming across a different paper about so-called stochastic interpolants, it was obvious that there is a connection between the two methods. Now, I am not sure stochastic interpolants paper gives a better motivation for the method, but at the very least, I think I have a better understanding of diffusion models, and flow-based models. The more general theory of stochastic interpolants, especially the one in the second paper<sup id="fnref3:3"><a class="footnote-ref" href="#fn:3">3</a></sup>, does give more flexibility in designing a particular diffusion model. In the second paper, for example, the authors introduce a stochastic differential equation (SDE) based model, which jointly trains the velocity field, but also a denoiser. I definitely recommend having a look at all 3 papers, as they are an interesting read. The stochastic interpolant papers in particular, are a lot more approachable than other papers discussing flow-based models.</p>
+<!--
+@todo: Two notebooks
+
+    1) MNIST stuff. Iterative alpha-(de)blending. Perhaps try
+       scipy.integrate.RK45 here. Perhaps also try alternative loss to see if it
+       makes any difference
+    2) alpha-(de)blending stuff like generating field?
+
+Or maybe no notebooks this time!
+-->
+
+<div class="footnote">
+<hr>
+<ol>
+<li id="fn:1">
+<p><a href="https://arxiv.org/abs/2305.03486">E. Heitz, L. Belcour, T. Chambon -- Iterative α-(de)Blending: a Minimalist Deterministic Diffusion Model</a> <a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">↩</a><a class="footnote-backref" href="#fnref2:1" title="Jump back to footnote 1 in the text">↩</a></p>
+</li>
+<li id="fn:2">
+<p><a href="https://arxiv.org/abs/2209.15571">M. S. Albergo, E. Vanden-Eijnden -- Building Normalizing Flows with Stochastic Interpolants</a> <a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">↩</a><a class="footnote-backref" href="#fnref2:2" title="Jump back to footnote 2 in the text">↩</a></p>
+</li>
+<li id="fn:3">
+<p><a href="https://arxiv.org/abs/2303.08797">M. S. Albergo, N. M. Boffi, E. Vanden-Eijnden -- Stochastic Interpolants: A Unifying Framework for Flows and Diffusions</a> <a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">↩</a><a class="footnote-backref" href="#fnref2:3" title="Jump back to footnote 3 in the text">↩</a><a class="footnote-backref" href="#fnref3:3" title="Jump back to footnote 3 in the text">↩</a></p>
+</li>
+</ol>
+</div>
+</div>
+    </div>
+    <aside class="postpromonav"><nav><ul class="pager hidden-print">
+<li class="previous">
+                <a href="../latent-diffusion-series-diffusion-model/" rel="prev" title="Latent Diffusion Series: Latent Diffusion Model">Previous post</a>
+            </li>
+        </ul></nav></aside><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML" integrity="sha384-3lJUsx1TJHt7BA4udB5KPnDrlkO8T6J6v/op7ui0BbCjvZ9WqV4Xm6DTP6kQ/iBH" crossorigin="anonymous"></script><script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$latex ','$'], ['\\(','\\)']]}});
+        </script></article></main>
+</div>
+    
+    
+
+    
+    
+<script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-115952579-1', 'auto');
+    ga('send', 'pageview');
+</script>
+</body>
+</html>

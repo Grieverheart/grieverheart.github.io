@@ -19,7 +19,7 @@
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/</loc>
-  <lastmod>2024-02-24T09:17:00Z</lastmod>
+  <lastmod>2024-10-08T20:47:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/building-a-sequencer-and-a-lever-editor-for-vectron.html</loc>
@@ -32,6 +32,10 @@
  <url>
   <loc>http://www.nicktasios.nl/posts/in-search-for-creativity.html</loc>
   <lastmod>2024-04-08T22:57:00Z</lastmod>
+ </url>
+ <url>
+  <loc>http://www.nicktasios.nl/posts/iterative-alpha-deblending/</loc>
+  <lastmod>2024-10-08T20:47:00Z</lastmod>
  </url>
  <url>
   <loc>http://www.nicktasios.nl/posts/latent-diffusion-series-diffusion-model/</loc>
