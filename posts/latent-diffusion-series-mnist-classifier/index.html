@@ -63,8 +63,7 @@
         
 
     </header><div class="e-content entry-content" itemprop="articleBody text">
-    <div>
-<p>In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In this first post, we will train a simple classifier to classify MNIST digits. This will later be used for scoring the quality of the generated digits using a variant of the so-called <a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance">Fréchet inception distance (FID)</a>.  <!-- TEASER_END --> For the other posts, please look below:</p>
+    <p>In the Latent Diffusion Series of blog posts, I'm going through all components needed to train a latent diffusion model to generate random digits from the MNIST dataset. In this first post, we will train a simple classifier to classify MNIST digits. This will later be used for scoring the quality of the generated digits using a variant of the so-called <a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance">Fréchet inception distance (FID)</a>.  <!-- TEASER_END --> For the other posts, please look below:</p>
 <ol>
 <li><strong>MNIST Classifier</strong></li>
 <li>Variational Autoencoder (VAE)</li>
@@ -82,23 +81,25 @@ Above you see an example of images from the <a href="http://yann.lecun.com/exdb/
 <img src="../../files/mnist.png" style="display:block; padding:1em 0;">
 For each image in the dataset, there is a corresponding label indicating which number is depicted. The dataset lends itself nicely for various learning tasks, such as classification, for which, to this date, an accuracy of 99.87% has been achieved <sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>.</p>
 <p>To easily use the dataset in Python, we use <a href="https://pytorch.org/vision/stable/index.html">torchvision</a>,</p>
-<pre class="code literal-block"><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torchvision.datasets</span> <span class="kn">import</span> <span class="n">MNIST</span>
+<div class="code"><pre class="code literal-block"><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">MNIST</span>
 <span class="n">data_train</span> <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span><span class="s1">'.'</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">data_test</span>  <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span><span class="s1">'.'</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</pre>
+</pre></div>
+
 <p>but you could also download the dataset from <a href="http://yann.lecun.com/exdb/mnist/">http://yann.lecun.com/exdb/mnist/</a>, although you'll need to write some code to parse the binary files.</p>
 <p>The dataset, as we get it from torchvision has values between 0 and 255, and is of type <code>uint8</code>, so, we will convert it to a format that's easier to use for training the classifier, by normalizing it to [0, 1). Furthermore, we will use Pytorch to pad the images with a 2 pixel border, bumping the size to 32x32, which is also more convenient for convolutional neural networks (CNN) that downsample the input at each level.</p>
-<pre class="code literal-block"><span class="n">x_train</span> <span class="o">=</span> <span class="n">data_train</span><span class="o">.</span><span class="n">data</span> <span class="o">/</span> <span class="mf">255.0</span>
+<div class="code"><pre class="code literal-block"><span class="n">x_train</span> <span class="o">=</span> <span class="n">data_train</span><span class="o">.</span><span class="n">data</span> <span class="o">/</span> <span class="mf">255.0</span>
 <span class="n">x_val</span>   <span class="o">=</span> <span class="n">data_test</span><span class="o">.</span><span class="n">data</span> <span class="o">/</span> <span class="mf">255.0</span>
 <span class="n">y_train</span> <span class="o">=</span> <span class="n">data_train</span><span class="o">.</span><span class="n">targets</span>
 <span class="n">y_val</span>   <span class="o">=</span> <span class="n">data_test</span><span class="o">.</span><span class="n">targets</span>
 
 <span class="n">x_train</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">x_val</span>   <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x_val</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</pre>
+</pre></div>
+
 <p>We can easily sample a set of digits for each label,</p>
-<pre class="code literal-block"><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<div class="code"><pre class="code literal-block"><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
 <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
     <span class="n">x_num</span> <span class="o">=</span> <span class="n">x_val</span><span class="p">[</span><span class="n">y_val</span> <span class="o">==</span> <span class="n">num</span><span class="p">,</span><span class="o">...</span><span class="p">]</span>
@@ -108,15 +109,16 @@ For each image in the dataset, there is a corresponding label indicating which n
         <span class="n">axes</span><span class="p">[</span><span class="n">num</span><span class="p">,</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">x_num</span><span class="p">[</span><span class="n">sid</span><span class="p">,:,:],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">'gray'</span><span class="p">)</span>
         <span class="n">axes</span><span class="p">[</span><span class="n">num</span><span class="p">,</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">'off'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre>
+</pre></div>
+
 <p>which produces a nice visualization of the variations that can be seen in each handwritten digit.
 <img src="../../files/mnist_ordered.png" style="display:block; padding:1em 0;"></p>
 <h2>Model</h2>
 <p>For the classification model, we use a simple convolutional neural network, which is similar to models like <a href="https://en.wikipedia.org/wiki/LeNet">LeNet</a>.
 <img src="../../files/mnist_classifier.png" style="display:block; padding:1em 0;">
 Above you can see a visual presentation of the network architecture but often the actual code for generating this network architecture can be easier to read.</p>
-<pre class="code literal-block"><span class="k">class</span> <span class="nc">Classifier</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="code"><pre class="code literal-block"><span class="k">class</span><span class="w"> </span><span class="nc">Classifier</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Classifier</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
@@ -139,14 +141,15 @@ Above you can see a visual presentation of the network architecture but often th
             <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">y</span>
-</pre>
+</pre></div>
+
 <p>Each level consists of a convolution, a ReLU non-linearity, and a Max or Average Pooling layer which downsample the input, producing 3 resolution levels. These levels are feature extractors, and the pooling layers are used to make sure that features are extracted at resolution levels. Finally, a linear layer is used at the output, to reduce the feature space to 10 dimensions. This 10-dimensional vector encodes the predicted digit as the position of its maximum value. This model has a total of 16554 parameters.</p>
 <h2>Training</h2>
 <p>To train the model, we use the <a href="https://en.wikipedia.org/wiki/Cross-entropy">cross-entropy loss</a>. The <a href="https://en.wikipedia.org/wiki/Cross-entropy">pytorch implementation</a> of this loss expects the unnormalized logits for each class as input. We use Adam<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup> as our optimizer of choice.</p>
-<pre class="code literal-block"><span class="n">epochs</span> <span class="o">=</span> <span class="mi">100</span>
+<div class="code"><pre class="code literal-block"><span class="n">epochs</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">256</span>
 <span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1e-3</span>
 <span class="n">i_log</span> <span class="o">=</span> <span class="mi">10</span>
@@ -188,23 +191,25 @@ Above you can see a visual presentation of the network architecture but often th
         <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">average_loss</span><span class="p">,</span> <span class="n">loss_val</span><span class="p">])</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Epoch </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> loss = </span><span class="si">{</span><span class="n">average_loss</span><span class="si">}</span><span class="s1">, validation loss = </span><span class="si">{</span><span class="n">loss_val</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
         <span class="n">average_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
-</pre>
+</pre></div>
+
 <p>As you can see from the code, for each epoch, we first permute the training set and then iterate over the batches. We keep the dataset on the CPU side so we have to move each batch to the device we're doing the calculations on.</p>
 <p>Training this simple model doesn't take too long. We can plot the train and validation loss as a function of the epochs,
 <img src="../../files/mnist_classifier_loss_plot.png" style="display:block; padding:1em 0;">
 You will notice that the validation loss seems to be lower than the training loss, but this is merely an artifact of the way we calculate the train loss; it's averaged over the batches while the model keeps improving during an epoch. Calculating the training loss over the whole dataset can be costly, so we are usually fine with this approach as long as we keep that in mind when comparing the two losses.</p>
 <h2>Evaluation</h2>
 <p>Let us first calculate the accuracy,</p>
-<pre class="code literal-block"><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+<div class="code"><pre class="code literal-block"><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
     <span class="n">y_val_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
 <span class="n">accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y_val_pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">y_val</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Model accuracy: </span><span class="si">{</span><span class="mf">100.0</span> <span class="o">*</span> <span class="n">accuracy</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">%'</span><span class="p">)</span>
-</pre>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Model accuracy: </span><span class="si">{</span><span class="mf">100.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">accuracy</span><span class="si">:</span><span class="s1">.2f</span><span class="si">}</span><span class="s1">%'</span><span class="p">)</span>
+</pre></div>
+
 <p>and we find that the accuracy over the validation dataset is a quite decent 99.1%.</p>
 <p>For a simple model and task like this it's really interesting to look at the activations. To visualize the activations, I average the outputs of the pooling layers over the validation set for each number.</p>
-<pre class="code literal-block"><span class="n">number_feature_maps</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="code"><pre class="code literal-block"><span class="n">number_feature_maps</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">number</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
     <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
     <span class="n">feature_maps</span> <span class="o">=</span> <span class="p">[]</span>
@@ -215,7 +220,8 @@ You will notice that the validation loss seems to be lower than the training los
             <span class="k">if</span> <span class="n">li</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">8</span><span class="p">]:</span>
                 <span class="n">feature_maps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
     <span class="n">number_feature_maps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature_maps</span><span class="p">)</span>
-</pre>
+</pre></div>
+
 <p>Then I plot the first activation below, where each row are the activations for the corresponding number.
 <img src="../../files/mnist_classifier_activations_lvl0.png" style="display:block; padding:1em 0;">
 By plotting these activations, we see that some activations work as pass through, letting the scaled down input to pass to the next level. Some other observations we one can extract by retraining the network and plotting the activations is that sometimes, some activations are duplicated. Furthermore, we find that the activations light up when certain parts are detected, like the 3rd activation which detects horizontal lines, or the 5th activation which seems to detect diagonals.</p>
@@ -223,7 +229,7 @@ By plotting these activations, we see that some activations work as pass through
 <img src="../../files/mnist_classifier_activations_lvl1.png" style="display:block; padding:1em 0;">
 We see that the first 2 activations are mostly inactive (which is a waste of memory/compute). If we look at the 7th activation of the number 4, we see that it shows 3 bright pixels, perhaps corresponding to its 3 vertical edges.</p>
 <p>Finally, I would like to remind you that the reason we implemented this classifier is to be able to calculate the <a href="https://en.wikipedia.org/wiki/Fr%C3%A9chet_inception_distance">FID</a> so that we can assess the quality of generated digits of the diffusion model we are going to implement. One of the assumptions of the FID is that the activations are normally distributed. This is used so that an exact expression is calculated for comparing the distributions of the activations of the generated digits and the ones in the dataset. So let us plot the distribution of the first few activations of the last convolutional layer, for the validation dataset. This is done with the following code,</p>
-<pre class="code literal-block"><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+<div class="code"><pre class="code literal-block"><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
     <span class="n">latent_val</span> <span class="o">=</span> <span class="n">x_val</span><span class="p">[:,</span><span class="kc">None</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">):</span>
@@ -235,7 +241,8 @@ We see that the first 2 activations are mostly inactive (which is a waste of mem
 <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">):</span>
     <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="o">//</span><span class="mi">4</span><span class="p">,</span><span class="n">i</span><span class="o">%</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">latent_val</span><span class="p">[:,</span><span class="n">i</span><span class="p">],</span> <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-</pre>
+</pre></div>
+
 <p>Note how I apply the layers up to the last convolution, not including the ReLU, since the ReLU removes the negative activations, skewing the distributions. Also, I perform an average pooling, but this is just to reduce the number of activations.
 <img src="../../files/mnist_classifier_activation_distribution.png" style="display:block; padding:1em 0;">
 So, although we cannot say that the distributions are exactly normally distributed, they are really close. To be honest, I'm not sure what the impact of this is when assessing the quality of generated numbers.</p>
@@ -252,7 +259,6 @@ So, although we cannot say that the distributions are exactly normally distribut
 <p><a href="https://arxiv.org/abs/1412.6980">D. P. Kingma, J. L. Ba -- Adam: A method for stochastic optimization</a> <a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">↩</a></p>
 </li>
 </ol>
-</div>
 </div>
     </div>
     <aside class="postpromonav"><nav><ul class="pager hidden-print">

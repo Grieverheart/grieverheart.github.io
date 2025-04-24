@@ -63,8 +63,7 @@
         
 
     </header><div class="e-content entry-content" itemprop="articleBody text">
-    <div>
-<p>It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on <a href="https://studiostok.itch.io/vectron">itch.io</a>.</p>
+    <p>It's been a couple of years since the post where I first introduced the new game I was working on, Vectron. In this post I wanted to tell you a bit about how I programmed the graphics of Vectron. Although I finished the game nearly a year ago, I was putting of releasing it. Compiling it for Windows and MacOS was a barrier I had to overcome, but I can finally say that I released my first game! You can checkout Vectron's page on <a href="https://studiostok.itch.io/vectron">itch.io</a>.</p>
 <!-- TEASER_END -->
 <iframe frameborder="0" src="https://itch.io/embed/876407?dark=true" width="100%"><a href="https://studiostok.itch.io/vectron">Vectron by studiostok</a></iframe>
 
@@ -126,10 +125,10 @@ In practice, this is a reasonable assumption, and setting this expression to 0, 
 <p>Most of the steps are really simple and you can find out how to draw a fullscreen quad on other blog posts, such as <a href="space-invaders-from-scratch-part-2.html">this one</a>. For drawing the beam segments we actually use a trick that was described in m1el's post, namely we draw quads but instead of passing the coordinates of each corner, we only pass the coordinates of the segment endpoints, and generate the quad coordinates in the vertex shader based on their vertex id.
 <img src="../files/beam_segment_quad.svg" style="display:block; width: 80%;">
 The implementation of the above trick can be seen in the vertex shader:</p>
-<pre class="code literal-block"><span class="cp">#version 330</span>
+<div class="code"><pre class="code literal-block"><span class="cp">#version 330</span>
 
-<span class="k">layout</span><span class="p">(</span><span class="n">location</span> <span class="o">=</span> <span class="mo">0</span><span class="p">)</span> <span class="k">in</span> <span class="kt">vec2</span> <span class="n">start</span><span class="p">;</span>
-<span class="k">layout</span><span class="p">(</span><span class="n">location</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="k">in</span> <span class="kt">vec2</span> <span class="n">end</span><span class="p">;</span>
+<span class="k">layout</span><span class="p">(</span><span class="n">location</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mo">0</span><span class="p">)</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="kt">vec2</span><span class="w"> </span><span class="n">start</span><span class="p">;</span>
+<span class="k">layout</span><span class="p">(</span><span class="n">location</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="kt">vec2</span><span class="w"> </span><span class="n">end</span><span class="p">;</span>
 
 <span class="c1">// quad vertex ids</span>
 <span class="c1">// 3--2</span>
@@ -137,112 +136,113 @@ The implementation of the above trick can be seen in the vertex shader:</p>
 <span class="c1">// |/ |</span>
 <span class="c1">// 0--1</span>
 
-<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_radius</span><span class="p">;</span>
-<span class="k">uniform</span> <span class="kt">vec2</span> <span class="n">aspect_ratio_correction</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">beam_radius</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">vec2</span><span class="w"> </span><span class="n">aspect_ratio_correction</span><span class="p">;</span>
 
-<span class="k">flat</span> <span class="k">out</span> <span class="kt">float</span> <span class="n">path_length</span><span class="p">;</span>
-<span class="k">flat</span> <span class="k">out</span> <span class="kt">int</span> <span class="n">edge_id</span><span class="p">;</span>
-<span class="k">smooth</span> <span class="k">out</span> <span class="kt">vec2</span> <span class="n">beam_coord</span><span class="p">;</span>
+<span class="k">flat</span><span class="w"> </span><span class="k">out</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">path_length</span><span class="p">;</span>
+<span class="k">flat</span><span class="w"> </span><span class="k">out</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">edge_id</span><span class="p">;</span>
+<span class="k">smooth</span><span class="w"> </span><span class="k">out</span><span class="w"> </span><span class="kt">vec2</span><span class="w"> </span><span class="n">beam_coord</span><span class="p">;</span>
 
-<span class="kt">void</span> <span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="kt">int</span> <span class="n">vid</span> <span class="o">=</span> <span class="nb">gl_VertexID</span> <span class="o">%</span> <span class="mi">4</span><span class="p">;</span>
-    <span class="n">path_length</span> <span class="o">=</span> <span class="n">length</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">gl_VertexID</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="n">path_length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">length</span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">);</span>
 
-    <span class="kt">vec2</span> <span class="n">dir</span> <span class="o">=</span> <span class="n">beam_radius</span> <span class="o">*</span> <span class="p">(</span>
-        <span class="p">(</span><span class="n">path_length</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span><span class="o">?</span>
-            <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">/</span> <span class="n">path_length</span><span class="o">:</span>
-            <span class="kt">vec2</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-    <span class="p">);</span>
+<span class="w">    </span><span class="kt">vec2</span><span class="w"> </span><span class="n">dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">beam_radius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="p">(</span><span class="n">path_length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span><span class="o">?</span>
+<span class="w">            </span><span class="p">(</span><span class="n">end</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">path_length</span><span class="o">:</span>
+<span class="w">            </span><span class="kt">vec2</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span>
+<span class="w">    </span><span class="p">);</span>
 
-    <span class="kt">vec2</span> <span class="n">orth</span> <span class="o">=</span> <span class="kt">vec2</span><span class="p">(</span><span class="o">-</span><span class="n">dir</span><span class="p">.</span><span class="n">y</span><span class="p">,</span> <span class="n">dir</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>
-    <span class="kt">vec2</span> <span class="n">pos</span> <span class="o">=</span>
-        <span class="p">((</span><span class="n">vid</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span><span class="o">?</span> <span class="n">start</span> <span class="o">-</span> <span class="n">dir</span><span class="o">:</span> <span class="n">end</span> <span class="o">+</span> <span class="n">dir</span><span class="p">)</span> <span class="o">+</span>
-       <span class="p">((</span><span class="n">vid</span> <span class="o">==</span> <span class="mo">0</span> <span class="o">||</span> <span class="n">vid</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span><span class="o">?</span> <span class="n">orth</span><span class="o">:</span> <span class="o">-</span><span class="n">orth</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">vec2</span><span class="w"> </span><span class="n">orth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">vec2</span><span class="p">(</span><span class="o">-</span><span class="n">dir</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">dir</span><span class="p">.</span><span class="n">x</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">vec2</span><span class="w"> </span><span class="n">pos</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="p">((</span><span class="n">vid</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="o">?</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">dir</span><span class="o">:</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dir</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
+<span class="w">       </span><span class="p">((</span><span class="n">vid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mo">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="o">?</span><span class="w"> </span><span class="n">orth</span><span class="o">:</span><span class="w"> </span><span class="o">-</span><span class="n">orth</span><span class="p">);</span>
 
-    <span class="n">pos</span> <span class="o">*=</span> <span class="n">aspect_ratio_correction</span><span class="p">;</span>
+<span class="w">    </span><span class="n">pos</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">aspect_ratio_correction</span><span class="p">;</span>
 
-    <span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">(</span><span class="n">vid</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">)</span><span class="o">?</span>
-            <span class="o">-</span><span class="n">beam_radius</span><span class="o">:</span>
-            <span class="n">path_length</span> <span class="o">+</span> <span class="n">beam_radius</span>
-    <span class="p">);</span>
-    <span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">(</span><span class="n">vid</span> <span class="o">==</span> <span class="mo">0</span> <span class="o">||</span> <span class="n">vid</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span><span class="o">?</span>
-            <span class="n">beam_radius</span><span class="o">:</span>
-            <span class="o">-</span><span class="n">beam_radius</span>
-    <span class="p">);</span>
+<span class="w">    </span><span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="p">(</span><span class="n">vid</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="o">?</span>
+<span class="w">            </span><span class="o">-</span><span class="n">beam_radius</span><span class="o">:</span>
+<span class="w">            </span><span class="n">path_length</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">beam_radius</span>
+<span class="w">    </span><span class="p">);</span>
+<span class="w">    </span><span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="p">(</span><span class="n">vid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mo">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="o">?</span>
+<span class="w">            </span><span class="n">beam_radius</span><span class="o">:</span>
+<span class="w">            </span><span class="o">-</span><span class="n">beam_radius</span>
+<span class="w">    </span><span class="p">);</span>
 
-    <span class="n">edge_id</span> <span class="o">=</span> <span class="nb">gl_VertexID</span> <span class="o">/</span> <span class="mi">4</span><span class="p">;</span>
+<span class="w">    </span><span class="n">edge_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">gl_VertexID</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
 
-    <span class="nb">gl_Position</span> <span class="o">=</span> <span class="kt">vec4</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">);</span>
+<span class="w">    </span><span class="nb">gl_Position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">vec4</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span>
 <span class="p">}</span>
-</pre>
+</pre></div>
+
 <p>Note that we pass <code>beam_coord</code> to the fragment shader with the keyword <code>smooth</code> so that it is interpolated over the quad. The fragment shader is a simple implementation of expression (1):</p>
-<pre class="code literal-block"><span class="cp">#version 330</span>
+<div class="code"><pre class="code literal-block"><span class="cp">#version 330</span>
 
 <span class="cp">#define SQRT2 1.4142135623730951</span>
 <span class="cp">#define SQRT2PI 2.506628274631001</span>
 
-<span class="kt">float</span> <span class="n">erf</span><span class="p">(</span><span class="kt">float</span> <span class="n">x</span><span class="p">)</span> <span class="p">{</span>
-    <span class="kt">float</span> <span class="n">s</span> <span class="o">=</span> <span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">a</span> <span class="o">=</span> <span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.278393</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.230389</span> <span class="o">+</span> <span class="mf">0.078108</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">a</span><span class="p">))</span> <span class="o">*</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="p">;</span>
-    <span class="n">x</span> <span class="o">*=</span> <span class="n">x</span><span class="p">;</span>
-    <span class="k">return</span> <span class="n">s</span> <span class="o">-</span> <span class="n">s</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span><span class="p">);</span>
+<span class="kt">float</span><span class="w"> </span><span class="n">erf</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="w">    </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.278393</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="mf">0.230389</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.078108</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+<span class="w">    </span><span class="n">x</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="k">uniform</span> <span class="kt">vec3</span> <span class="n">beam_color</span><span class="p">;</span>
-<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_radius</span><span class="p">;</span>
-<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_dt</span><span class="p">;</span>
-<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_intensity</span><span class="p">;</span>
-<span class="k">uniform</span> <span class="kt">float</span> <span class="n">beam_decay_time</span><span class="p">;</span>
-<span class="k">uniform</span> <span class="kt">uint</span> <span class="n">beam_num_edges</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">vec3</span><span class="w"> </span><span class="n">beam_color</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">beam_radius</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">beam_dt</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">beam_intensity</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">beam_decay_time</span><span class="p">;</span>
+<span class="k">uniform</span><span class="w"> </span><span class="kt">uint</span><span class="w"> </span><span class="n">beam_num_edges</span><span class="p">;</span>
 
-<span class="k">out</span> <span class="kt">vec4</span> <span class="n">outColor</span><span class="p">;</span>
+<span class="k">out</span><span class="w"> </span><span class="kt">vec4</span><span class="w"> </span><span class="n">outColor</span><span class="p">;</span>
 
-<span class="k">flat</span> <span class="k">in</span> <span class="kt">float</span> <span class="n">path_length</span><span class="p">;</span>
-<span class="k">flat</span> <span class="k">in</span> <span class="kt">int</span> <span class="n">edge_id</span><span class="p">;</span>
-<span class="k">smooth</span> <span class="k">in</span> <span class="kt">vec2</span> <span class="n">beam_coord</span><span class="p">;</span>
+<span class="k">flat</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">path_length</span><span class="p">;</span>
+<span class="k">flat</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">edge_id</span><span class="p">;</span>
+<span class="k">smooth</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="kt">vec2</span><span class="w"> </span><span class="n">beam_coord</span><span class="p">;</span>
 
-<span class="kt">void</span> <span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
 <span class="p">{</span>
-    <span class="kt">float</span> <span class="n">sigma</span> <span class="o">=</span> <span class="n">beam_radius</span> <span class="o">/</span> <span class="mf">5.0</span><span class="p">;</span>
-    <span class="kt">float</span> <span class="n">total_factor</span> <span class="o">=</span> <span class="n">beam_intensity</span> <span class="o">*</span> <span class="n">beam_dt</span><span class="p">;</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">path_length</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span>
-    <span class="p">{</span>
-        <span class="kt">float</span> <span class="n">f</span> <span class="o">=</span> <span class="n">beam_dt</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">/</span>
-            <span class="p">(</span><span class="n">SQRT2</span> <span class="o">*</span> <span class="n">path_length</span> <span class="o">*</span> <span class="n">beam_decay_time</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">sigma</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">beam_radius</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">5.0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">total_factor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">beam_intensity</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">beam_dt</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">path_length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">float</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">beam_dt</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="w"> </span><span class="o">/</span>
+<span class="w">            </span><span class="p">(</span><span class="n">SQRT2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">path_length</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">beam_decay_time</span><span class="p">);</span>
 
-        <span class="n">total_factor</span> <span class="o">*=</span>
-            <span class="n">erf</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="n">SQRT2</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">))</span> <span class="o">-</span>
-            <span class="n">erf</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="p">(</span><span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">path_length</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">SQRT2</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">));</span>
+<span class="w">        </span><span class="n">total_factor</span><span class="w"> </span><span class="o">*=</span>
+<span class="w">            </span><span class="n">erf</span><span class="p">(</span><span class="n">f</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">SQRT2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="p">))</span><span class="w"> </span><span class="o">-</span>
+<span class="w">            </span><span class="n">erf</span><span class="p">(</span><span class="n">f</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">path_length</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">SQRT2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="p">));</span>
 
-        <span class="n">total_factor</span> <span class="o">*=</span> <span class="n">exp</span><span class="p">(</span>
-            <span class="n">f</span> <span class="o">*</span> <span class="n">f</span> <span class="o">-</span>
-            <span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span> <span class="o">*</span> <span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">-</span>
-            <span class="n">beam_dt</span> <span class="o">*</span> <span class="p">(</span>
-                <span class="kt">float</span><span class="p">(</span><span class="n">beam_num_edges</span><span class="p">)</span> <span class="o">-</span>
-                <span class="kt">float</span><span class="p">(</span><span class="n">edge_id</span><span class="p">)</span> <span class="o">-</span>
-                <span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span> <span class="o">/</span> <span class="n">path_length</span>
-            <span class="p">)</span> <span class="o">/</span> <span class="n">beam_decay_time</span>
-        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">path_length</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="k">else</span>
-    <span class="p">{</span>
-        <span class="n">total_factor</span> <span class="o">*=</span> <span class="n">exp</span><span class="p">(</span>
-            <span class="o">-</span><span class="n">dot</span><span class="p">(</span><span class="n">beam_coord</span><span class="p">,</span> <span class="n">beam_coord</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">)</span>
-        <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">SQRT2PI</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="n">outColor</span> <span class="o">=</span> <span class="kt">vec4</span><span class="p">(</span><span class="n">total_factor</span> <span class="o">*</span> <span class="n">beam_color</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">);</span>
+<span class="w">        </span><span class="n">total_factor</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">exp</span><span class="p">(</span>
+<span class="w">            </span><span class="n">f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">-</span>
+<span class="w">            </span><span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">beam_coord</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="p">)</span><span class="w"> </span><span class="o">-</span>
+<span class="w">            </span><span class="n">beam_dt</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span>
+<span class="w">                </span><span class="kt">float</span><span class="p">(</span><span class="n">beam_num_edges</span><span class="p">)</span><span class="w"> </span><span class="o">-</span>
+<span class="w">                </span><span class="kt">float</span><span class="p">(</span><span class="n">edge_id</span><span class="p">)</span><span class="w"> </span><span class="o">-</span>
+<span class="w">                </span><span class="n">beam_coord</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">path_length</span>
+<span class="w">            </span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">beam_decay_time</span>
+<span class="w">        </span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">path_length</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">total_factor</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="n">exp</span><span class="p">(</span>
+<span class="w">            </span><span class="o">-</span><span class="n">dot</span><span class="p">(</span><span class="n">beam_coord</span><span class="p">,</span><span class="w"> </span><span class="n">beam_coord</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="p">)</span>
+<span class="w">        </span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">SQRT2PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sigma</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">outColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">vec4</span><span class="p">(</span><span class="n">total_factor</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">beam_color</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span>
 <span class="p">}</span>
-</pre>
+</pre></div>
+
 <h2>Conclusion</h2>
 <p>Although you can make great games without being very good at math, or physics, here I was able to show you how leveraging math I could create a game with a unique graphics style. Although I've presented here the final renderer, my first approach was a really dumb CPU implementation where I explicitly (and inaccurately) performed the integral by drawing and accumulating a gaussian for each pixel in the beam's path. The results are actually not that bad as you can see below, and the performance is also better than you'd expect.
 <img src="../files/old_cpu_beam_renderer.png" width="448px" style="display:block; padding:1em 0;">
 Still, by constantly iterating on this idea, I was able to build something much more robust and performant. Despite that, there is still quite a bit room for improvement, such as reducing the overdraw by drawing a triangle strip, or reducing the number of required points, N, by using a better interpolation scheme than the linear interpolation we use now. The latter of course introduces additional complexity for calculating the relevant integrals.</p>
 <p>Finally, the implementation of the oscilloscope input is also a very interesting story which I'd like to discuss next time. By introducing a vocabulary of input signals that can be combined in interesting ways, we can even build a simulation of a monochrome CRT monitor. The latter is something I'd like to explore more in the future, including the simulation of color CRT displays.</p>
 <p>This is what I like about game programming; taking a simple idea and iterating on it. Playing with different ideas and researching the different possibilities, slowly gravitating to the ones you find the most interesting.</p>
-</div>
     </div>
     <aside class="postpromonav"><nav><ul class="pager hidden-print">
 <li class="previous">

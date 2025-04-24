@@ -62,8 +62,7 @@
         
 
     </header><div class="e-content entry-content" itemprop="articleBody text">
-    <div>
-<p>In this post I'm looking into a paper the authors of which promise to make diffusion models simple to understand and implement, called Iterative α-(de)blending<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>, and find out that this promise is only partially fulfilled, at least personally. I reproduce the algorithm from the paper and apply it to the generation of MNIST digits, like I did in the previous series of posts, and find out that something is missing. As the title of the post reveals, we might find the missing ingredient in Stochastic interpolants.</p>
+    <p>In this post I'm looking into a paper the authors of which promise to make diffusion models simple to understand and implement, called Iterative α-(de)blending<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>, and find out that this promise is only partially fulfilled, at least personally. I reproduce the algorithm from the paper and apply it to the generation of MNIST digits, like I did in the previous series of posts, and find out that something is missing. As the title of the post reveals, we might find the missing ingredient in Stochastic interpolants.</p>
 <!-- TEASER_END -->
 <p>The authors of the paper, like many others, found the topic of diffusion models difficult to enter. Usually, diffusion models involve many difficult concepts used from probability theory, stochastic differential equations, etc., and the fact that diffusion models can be approached in so many different ways doesn't help either. This was also my motivation for writing the <a href="../latent-diffusion-series-mnist-classifier">blog series</a> in diffusion models — although I'm not sure I was able to make the topic much more approachable. Thus, they set out to derive a simple model using only bachelor-level concepts. So let's have a closer look!</p>
 <h2>Iterative α-(de)Blending</h2>
@@ -78,7 +77,7 @@ x_{\alpha} = (1 - \alpha) x_0 + \alpha x_1
 \]
 with \(x_{\alpha}\) being distributed according to \(p_{\alpha}\),
 while \(\alpha\)-deblending is the inverse operation (statistically), that is, starting from a blended sample \(x_{\alpha} \sim p_{\alpha}\), and ending up with pair of samples \( (x_0, x_1) \sim (p_0, p_1)\). As you might imaging, even though the blending operation is quite straightforward, the deblending operation is not as simple. There is no unique pair of \(x_0, x_1\) that blend to \(x_{\alpha}\), but a distribution, \(p(x_0, x_1 | x_{\alpha})\). Now, we notice that we can chain these operations; for example, if we have samples \(x_0, x_1\), we can blend them into sample \(x_{\alpha}\), and then we can deblend in some \(x_0', x_1'\), and then we can apply the blending again, with \(\alpha' = \alpha + \Delta \alpha\). We can repeat that for an arbitrary number of steps for an increasing value of the blending parameter \(\alpha\). A series of such blended points, \(x_{\alpha}\), can be considered as points on a path mapping \(x_0\) to \(x_1\). We can write code to produce such paths,</p>
-<pre class="code literal-block"><span class="k">def</span> <span class="nf">iadb</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+<div class="code"><pre class="code literal-block"><span class="k">def</span><span class="w"> </span><span class="nf">iadb</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
     <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">N</span>
     <span class="n">x0</span> <span class="o">=</span> <span class="n">sample_triangle</span><span class="p">()[</span><span class="mi">0</span><span class="p">,:]</span>
     <span class="n">x1</span> <span class="o">=</span> <span class="n">sample_square</span><span class="p">()[</span><span class="mi">0</span><span class="p">,:]</span>
@@ -95,14 +94,15 @@ while \(\alpha\)-deblending is the inverse operation (statistically), that is, s
                 <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
                 <span class="k">break</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
-</pre>
+</pre></div>
+
 <p>Here, we first calculate the step size, \(\Delta \alpha = 1 / N\), and immediately calculate the first step, \(x_{\alpha}\) by sampling points from the triangle (\(p_0\)), and from the square (\(p_1\)), and using the blending equation, eq. \eqref{eq:blending_equation}. Then, to calculate all other points in the path, at each step we sample \(p_0\) and solve eq. \eqref{eq:blending_equation} to find a new point \(x_1\) — this is the deblending operation. If \(x_1\) happens to be in the square, we update \(\alpha\), and calculate a new \(x_{\alpha}\) using the blending equation again. With this function, we can generate a number of paths, and get a figure similar to the one above, and if we increase the number of steps significantly, you will see that the paths start to converge.
 <img src="../../files/iadb_simple_path_combined.svg" style="display:block; padding:1em 0;">
 The authors of the paper spend some time proving that indeed this chain of operations converges in the limit of infinitesimal \(\Delta \alpha\). They further show that the direction one needs to move to, at a point \(x_{\alpha}\), coincides with the tangent of the deterministic path, and is equal to \(\bar{x}_1 - \bar{x}_0\), where the average is taken over all pairs of points \(x_0, x_1\) that could have blended in to \(x_{\alpha}\). The tangent, then, is a function of \(x_{\alpha}\), and \(\alpha\). Following the paper's notation, let's denote it as \(D(x_{\alpha}, \alpha)\).</p>
 <p>It's not that difficult to approximate \(D(x_{\alpha}, \alpha)\) using a grid, for the toy problem we have been working on.
 <img src="../../files/iadb_field.svg" style="display:block; padding:1em 0;">
 Above you see the polar angle (calculated as <code>atan2(y/x)</code>) of the field \(D(x_{1/2}, 1/2)\). The field is only defined for a region in the middle, and outside that region there are just no points \(x_{1/2}\) that deblend into points on the triangle and square. The field itself is calculated by first sampling a number of points in the two distributions and then producing all combinations of blended points for a particular \(\alpha\), and averaging the value of \(x_1 - x_0\) at the grid point corresponding to \(x_{\alpha}\). Below is the code the produces the field for a particular \(\alpha\), given points from each of the two distributions.</p>
-<pre class="code literal-block"><span class="k">def</span> <span class="nf">calc_field</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">pts_a</span><span class="p">,</span> <span class="n">pts_b</span><span class="p">,</span> <span class="n">field_dim</span><span class="p">):</span>
+<div class="code"><pre class="code literal-block"><span class="k">def</span><span class="w"> </span><span class="nf">calc_field</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">pts_a</span><span class="p">,</span> <span class="n">pts_b</span><span class="p">,</span> <span class="n">field_dim</span><span class="p">):</span>
     <span class="c1"># Calculate the field dimensions.</span>
     <span class="n">X_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">pts_a</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">pts_b</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]])</span>
     <span class="n">Y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">pts_a</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">pts_b</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]])</span>
@@ -138,7 +138,8 @@ Above you see the polar angle (calculated as <code>atan2(y/x)</code>) of the fie
     <span class="n">field</span><span class="p">[</span><span class="n">norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">/=</span> <span class="n">norm</span><span class="p">[</span><span class="n">norm</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span><span class="kc">None</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">field</span>
-</pre>
+</pre></div>
+
 <p>Training a neural network to learn \(D(x_{\alpha}, \alpha)\), is not very different, actually; points \(x_0\) and \(x_1\) are sampled from the two distributions, the blended sample, \(x_{\alpha}\) is calculated, and finally the loss,
 \[
 \tag{2}
@@ -160,7 +161,7 @@ With this, we can adapt our diffusion model code from the previous blog post to 
 <img src="../../files/mnist_iadb_random_samples.png" style="display:block; padding:1em 0;">
 We get an amazing Fréchet distance of about 3, while with the latent diffusion model I introduced in the <a href="../latent-diffusion-series-diffusion-model/">previous blog post</a> we got a Fréchet distance of 6.
 The code for the training and sampling step are really simple:</p>
-<pre class="code literal-block"><span class="k">def</span> <span class="nf">do_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x0</span><span class="p">):</span>
+<div class="code"><pre class="code literal-block"><span class="k">def</span><span class="w"> </span><span class="nf">do_step</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x0</span><span class="p">):</span>
     <span class="n">x1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
     <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">x_alpha</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">x1</span>
@@ -170,7 +171,7 @@ The code for the training and sampling step are really simple:</p>
 
     <span class="k">return</span> <span class="n">loss</span>
 
-<span class="k">def</span> <span class="nf">do_diffusion_backward</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">do_diffusion_backward</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">):</span>
     <span class="n">x_alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">time_steps</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="n">time_steps</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">time_steps</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
@@ -179,7 +180,8 @@ The code for the training and sampling step are really simple:</p>
         <span class="n">x_alpha</span> <span class="o">+=</span> <span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="o">*</span> <span class="n">pred</span>
 
     <span class="k">return</span> <span class="n">x_alpha</span>
-</pre>
+</pre></div>
+
 <p>which is just the application of equations \eqref{eq:blending_equation}, \eqref{eq:loss}, and \eqref{eq:sampling}.</p>
 <h2>Stochastic Interpolants</h2>
 <p>As we saw above, iterative α-(de)blending does a really good job at generating good quality samples and is really easy to implement, but one thing I'm missing is the motivation behind the method — how would you derive it from first principles. Instead, it feels ad-hoc, but then I came across a paper by M. S. Albergo <em>et al</em> about so called Stochastic Interpolants<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup><sup>,</sup><sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup>.</p>
@@ -238,7 +240,6 @@ Or maybe no notebooks this time!
 <p><a href="https://arxiv.org/abs/2303.08797">M. S. Albergo, N. M. Boffi, E. Vanden-Eijnden -- Stochastic Interpolants: A Unifying Framework for Flows and Diffusions</a> <a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">↩</a><a class="footnote-backref" href="#fnref2:3" title="Jump back to footnote 3 in the text">↩</a><a class="footnote-backref" href="#fnref3:3" title="Jump back to footnote 3 in the text">↩</a></p>
 </li>
 </ol>
-</div>
 </div>
     </div>
     <aside class="postpromonav"><nav><ul class="pager hidden-print">
