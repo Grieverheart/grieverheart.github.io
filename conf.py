@@ -251,6 +251,7 @@ FILES_FOLDERS = {
     'files_other' : '',
     'files'       : 'files',
     'cas2wav'     : 'projects/cas2wav',
+    'radiotron'   : 'radiotron',
 }
 # Which means copy 'files' into 'output'
 
