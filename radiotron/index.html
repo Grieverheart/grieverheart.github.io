@@ -7,14 +7,14 @@
         <link href="../../assets/css/common.css" rel="stylesheet" type="text/css">
         <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
         <meta name="theme-color" content="#404040">
-        <link rel="canonical" href="http://www.nicktasios.nl/radiotron">
+        <link rel="canonical" href="https://nicktasios.nl/radiotron">
         <!--[if lt IE 9]><script src="../../assets/js/html5shiv-printshiv.min.js"></script><![endif]--><meta name="google-site-verification" content="VDWyLavVScx9_TFKSYp-w9DkfulCPL2LjFZwbceYyu4">
         <meta name="author" content="Nick Tasios">
         <meta property="og:site_name" content="NICK TASIOS">
         <meta property="og:title" content="Radiotron">
-        <meta property="og:url" content="http://www.nicktasios.nl/radiotron">
+        <meta property="og:url" content="https://nicktasios.nl/radiotron">
         <meta property="og:description" content="Radiotron is a high-performance medical image segmentation and visualization tool built for clinicians and researchers who need fast, responsive workflows.">
-        <meta property="og:image" content="http://www.nicktasios.nl/files/radiotron2.png">
+        <meta property="og:image" content="https://nicktasios.nl/files/radiotron_preview_square.png">
         <meta property="og:type" content="website">
 
         <style>
@@ -43,6 +43,46 @@
                 justify-content: space-between;
             }
             .social a { margin-left: 12px; color: #e0e0e0; text-decoration: none; }
+
+            #appname {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            #appname img {
+                width: 8rem;
+                height: 8rem;
+                margin: 0;
+                transition: width 0.3s ease;
+            }
+
+            #appname h1 {
+                font-size: 4em;
+                text-align: center;
+                margin: 0;
+                transition: font-size 0.3s ease;
+            }
+
+            @media (max-width: 32em)
+            {
+                #appname img {
+                    width: 5rem;
+                    height: 5rem;
+                    margin: 0;
+                }
+
+                #appname h1 {
+                    font-size: 2.5em;
+                    text-align: center;
+                    margin: 0;
+                }
+
+                body {
+                    font-size: 15px;
+                }
+            }
         </style>
     </head>
     <body>
@@ -52,16 +92,12 @@
 
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-top: 1rem;">
 
-                    <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem;">
-                        <img src="../../files/radiotron_inkscape_plain.svg" style="width: 8rem; height: 8rem; margin: 0;">
-                        <h1 style="font-size: 4em; text-align: center; margin: 0;" itemprop="headline name">
-                            Radiotron
-                        </h1>
+                    <div id="appname">
+                        <img src="../../files/radiotron_inkscape_plain.svg">
+                        <h1 itemprop="headline name">Radiotron</h1>
                     </div>
                     <h2 style="text-align: center; margin-bottom: 0;">A Blazing Fast Medical Segmentation and Visualization Tool </h2>
-                    <p style="text-align: center;">
-                        Radiotron is still under heavy development but you can try the alpha release now:
-                    </p>
+                    <p style="text-align: center;">Radiotron is still under heavy development but you can try the alpha release now:</p>
 
                     <a href="https://www.dropbox.com/scl/fi/qix11wgy5cplvphaocgnn/Radiotron-0.0.0-windows_x64.zip?rlkey=ftshjeuzqseizh2ezpb0n3sbm&st=k5ichay3&dl=1" style="text-decoration: none;">
                         <button>

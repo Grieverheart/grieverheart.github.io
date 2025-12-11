@@ -8,7 +8,7 @@
 .. description: 
 .. type: text
 .. pretty_url: False
-.. image: /files/radiotron.png
+.. image: /files/radiotron_preview_square.png
 -->
 
 <h1><a href="/radiotron" target="_blank">Radiotron</a></h1>
